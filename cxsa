@@ -1,3 +1,198 @@
+gg.setVisible(true)
+LuaLibraryTool = -1
+function HOME()
+MENU = gg.choice({
+        "LIQUID SCORE 50",
+        "LIQUID SCORE 48",
+        "Exit",
+}, nil, " MAKE BY CX_SANJU ")
+if MENU == nil then
+  else
+   if MENU == 1 then
+      MENU1()
+     end
+   if MENU == 2 then
+      MENU2()
+     end
+    if MENU == 3 then
+      MENU3()
+     end
+   end
+  LuaLibraryTool = -1
+end
+
+function MENU1()
+gg.clearResults()
+gg.setRanges(32)
+gg.searchNumber(18245222400, gg.TYPE_QWORD)
+WinzoScripter = gg.getResults(250000)
+Offsets = {}
+Offsets['FirstOffset'] = {}
+Offsets['SecondOffset'] = {}
+Offsets['FinalResults'] = {}
+OffsetsIndex = 1
+for index, value in ipairs(WinzoScripter) do
+ Offsets['FirstOffset'][OffsetsIndex] = {}
+ Offsets['FirstOffset'][OffsetsIndex].address = WinzoScripter[index].address + -20
+ Offsets['FirstOffset'][OffsetsIndex].flags = gg.TYPE_QWORD
+ Offsets['SecondOffset'][OffsetsIndex] = {}
+ Offsets['SecondOffset'][OffsetsIndex].address = WinzoScripter[index].address + -4
+ Offsets['SecondOffset'][OffsetsIndex].flags = gg.TYPE_QWORD OffsetsIndex = OffsetsIndex + 1
+end
+Offsets['FirstOffset'] = gg.getValues(Offsets['FirstOffset'])
+Offsets['SecondOffset'] = gg.getValues(Offsets['SecondOffset'])
+OffsetsIndex = 1
+for index, value in ipairs(Offsets['FirstOffset']) do
+ if (Offsets['FirstOffset'][index].value == 4294967553) and (Offsets['SecondOffset'][index].value == 4575657221408423936) then
+  Offsets['FinalResults'][OffsetsIndex] = {}
+  Offsets['FinalResults'][OffsetsIndex] =  Offsets['FirstOffset'][index]
+  OffsetsIndex = OffsetsIndex + 1
+ end
+end
+for index, value in ipairs(Offsets['FinalResults']) do
+ Offsets['FinalResults'][index].address = Offsets['FinalResults'][index].address + -12
+ Offsets['FinalResults'][index].flags = 4
+end
+gg.loadResults(Offsets['FinalResults'])
+gg.getResults(9999)
+gg.editAll("1,644,685,087", gg.TYPE_DWORD)
+gg.clearResults()
+gg.setRanges(32)
+gg.searchNumber(18245222400, gg.TYPE_QWORD)
+WinzoScripter = gg.getResults(250000)
+Offsets = {}
+Offsets['FirstOffset'] = {}
+Offsets['SecondOffset'] = {}
+Offsets['FinalResults'] = {}
+OffsetsIndex = 1
+for index, value in ipairs(WinzoScripter) do
+ Offsets['FirstOffset'][OffsetsIndex] = {}
+ Offsets['FirstOffset'][OffsetsIndex].address = WinzoScripter[index].address + -20
+ Offsets['FirstOffset'][OffsetsIndex].flags = gg.TYPE_QWORD
+ Offsets['SecondOffset'][OffsetsIndex] = {}
+ Offsets['SecondOffset'][OffsetsIndex].address = WinzoScripter[index].address + -4
+ Offsets['SecondOffset'][OffsetsIndex].flags = gg.TYPE_QWORD OffsetsIndex = OffsetsIndex + 1
+end
+Offsets['FirstOffset'] = gg.getValues(Offsets['FirstOffset'])
+Offsets['SecondOffset'] = gg.getValues(Offsets['SecondOffset'])
+OffsetsIndex = 1
+for index, value in ipairs(Offsets['FirstOffset']) do
+ if (Offsets['FirstOffset'][index].value == 4294967553) and (Offsets['SecondOffset'][index].value == 4575657221408423936) then
+  Offsets['FinalResults'][OffsetsIndex] = {}
+  Offsets['FinalResults'][OffsetsIndex] =  Offsets['FirstOffset'][index]
+  OffsetsIndex = OffsetsIndex + 1
+ end
+end
+for index, value in ipairs(Offsets['FinalResults']) do
+ Offsets['FinalResults'][index].address = Offsets['FinalResults'][index].address + -8
+ Offsets['FinalResults'][index].flags = 4
+end
+gg.loadResults(Offsets['FinalResults'])
+gg.getResults(9999)
+gg.editAll("-1,644,685,103;", gg.TYPE_DWORD)
+gg.clearResults()
+gg.setRanges(32)
+gg.searchNumber(18245222400, gg.TYPE_QWORD)
+WinzoScripter = gg.getResults(250000)
+Offsets = {}
+Offsets['FirstOffset'] = {}
+Offsets['SecondOffset'] = {}
+Offsets['FinalResults'] = {}
+OffsetsIndex = 1
+for index, value in ipairs(WinzoScripter) do
+ Offsets['FirstOffset'][OffsetsIndex] = {}
+ Offsets['FirstOffset'][OffsetsIndex].address = WinzoScripter[index].address + -20
+ Offsets['FirstOffset'][OffsetsIndex].flags = gg.TYPE_QWORD
+ Offsets['SecondOffset'][OffsetsIndex] = {}
+Offsets['SecondOffset'][OffsetsIndex].address = WinzoScripter[index].address + -4
+ Offsets['SecondOffset'][OffsetsIndex].flags = gg.TYPE_QWORD OffsetsIndex = OffsetsIndex + 1
+end
+Offsets['FirstOffset'] = gg.getValues(Offsets['FirstOffset'])
+Offsets['SecondOffset'] = gg.getValues(Offsets['SecondOffset'])
+OffsetsIndex = 1
+for index, value in ipairs(Offsets['FirstOffset']) do
+ if (Offsets['FirstOffset'][index].value == 4294967553) and (Offsets['SecondOffset'][index].value == 4575657221408423936) then
+  Offsets['FinalResults'][OffsetsIndex] = {}
+  Offsets['FinalResults'][OffsetsIndex] =  Offsets['FirstOffset'][index]
+  OffsetsIndex = OffsetsIndex + 1
+ end
+end
+for index, value in ipairs(Offsets['FinalResults']) do
+ Offsets['FinalResults'][index].address = Offsets['FinalResults'][index].address + -4
+ Offsets['FinalResults'][index].flags = 4
+end
+gg.loadResults(Offsets['FinalResults'])
+gg.getResults(9999)
+gg.editAll("-50", gg.TYPE_DWORD)
+gg.clearResults()
+gg.toast("SCORE_50...✅")
+end
+
+function MENU2()
+gg.clearResults()
+gg.setRanges(32)
+gg.searchNumber(18245222400, gg.TYPE_QWORD)
+WinzoScripter = gg.getResults(250000)
+Offsets = {}
+Offsets['FirstOffset'] = {}
+Offsets['SecondOffset'] = {}
+Offsets['FinalResults'] = {}
+OffsetsIndex = 1
+for index, value in ipairs(WinzoScripter) do
+ Offsets['FirstOffset'][OffsetsIndex] = {}
+ Offsets['FirstOffset'][OffsetsIndex].address = WinzoScripter[index].address + -20
+ Offsets['FirstOffset'][OffsetsIndex].flags = gg.TYPE_QWORD
+ Offsets['SecondOffset'][OffsetsIndex] = {}
+ Offsets['SecondOffset'][OffsetsIndex].address = WinzoScripter[index].address + -4
+ Offsets['SecondOffset'][OffsetsIndex].flags = gg.TYPE_QWORD OffsetsIndex = OffsetsIndex + 1
+end
+Offsets['FirstOffset'] = gg.getValues(Offsets['FirstOffset'])
+Offsets['SecondOffset'] = gg.getValues(Offsets['SecondOffset'])
+OffsetsIndex = 1
+for index, value in ipairs(Offsets['FirstOffset']) do
+ if (Offsets['FirstOffset'][index].value == 4294967553) and (Offsets['SecondOffset'][index].value == 4575657221408423936) then
+  Offsets['FinalResults'][OffsetsIndex] = {}
+  Offsets['FinalResults'][OffsetsIndex] =  Offsets['FirstOffset'][index]
+  OffsetsIndex = OffsetsIndex + 1
+ end
+end
+for index, value in ipairs(Offsets['FinalResults']) do
+ Offsets['FinalResults'][index].address = Offsets['FinalResults'][index].address + -12
+ Offsets['FinalResults'][index].flags = 4
+end
+gg.loadResults(Offsets['FinalResults'])
+gg.getResults(9999)
+gg.editAll("1,683,631,602", gg.TYPE_DWORD)
+gg.clearResults()
+gg.setRanges(32)
+gg.searchNumber(18245222400, gg.TYPE_QWORD)
+WinzoScripter = gg.getResults(250000)
+Offsets = {}
+Offsets['FirstOffset'] = {}
+Offsets['SecondOffset'] = {}
+Offsets['FinalResults'] = {}
+OffsetsIndex = 1
+for index, value in ipairs(WinzoScripter) do
+ Offsets['FirstOffset'][OffsetsIndex] = {}
+ Offsets['FirstOffset'][OffsetsIndex].address = WinzoScripter[index].address + -20
+ Offsets['FirstOffset'][OffsetsIndex].flags = gg.TYPE_QWORD
+ Offsets['SecondOffset'][OffsetsIndex] = {}
+ Offsets['SecondOffset'][OffsetsIndex].address = WinzoScripter[index].address + -4
+ Offsets['SecondOffset'][OffsetsIndex].flags = gg.TYPE_QWORD OffsetsIndex = OffsetsIndex + 1
+end
+Offsets['FirstOffset'] = gg.getValues(Offsets['FirstOffset'])
+Offsets['SecondOffset'] = gg.getValues(Offsets['SecondOffset'])
+OffsetsIndex = 1
+for index, value in ipairs(Offsets['FirstOffset']) do
+ if (Offsets['FirstOffset'][index].value == 4294967553) and (Offsets['SecondOffset'][index].value == 4575657221408423936) then
+  Offsets['FinalResults'][OffsetsIndex] = {}
+  Offsets['FinalResults'][OffsetsIndex] =  Offsets['FirstOffset'][index]
+  OffsetsIndex = OffsetsIndex + 1
+ end
+end
+for index, value in ipairs(Offsets['FinalResults']) do
+ Offsets['FinalResults'][index].address = Offsets['FinalResults'][index].address + -8
+ Offsets['FinalResults'][index].flags = 4
 end
 gg.loadResults(Offsets['FinalResults'])
 gg.getResults(9999)
