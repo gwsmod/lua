@@ -1,0 +1,111 @@
+menu = gg.choice({' ⭐ SPEED  CLICK ','   ✨ RESET BOARD '} ,nil, '➡️CX _ SANJU PREMIUM ⬅️')
+if menu==1 then
+gg.clearResults()
+gg.setRanges(32)
+gg.searchNumber(18245222400, gg.TYPE_QWORD)
+HackersHouse = gg.getResults(250000)
+Offsets = {}
+Offsets['FirstOffset'] = {}
+Offsets['SecondOffset'] = {}
+Offsets['FinalResults'] = {}
+OffsetsIndex = 1
+for index, value in ipairs(HackersHouse) do
+ Offsets['FirstOffset'][OffsetsIndex] = {}
+ Offsets['FirstOffset'][OffsetsIndex].address = HackersHouse[index].address + -144
+ Offsets['FirstOffset'][OffsetsIndex].flags = gg.TYPE_QWORD
+ Offsets['SecondOffset'][OffsetsIndex] = {}
+ Offsets['SecondOffset'][OffsetsIndex].address = HackersHouse[index].address + -4
+ Offsets['SecondOffset'][OffsetsIndex].flags = gg.TYPE_QWORD OffsetsIndex = OffsetsIndex + 1
+end
+Offsets['FirstOffset'] = gg.getValues(Offsets['FirstOffset'])
+Offsets['SecondOffset'] = gg.getValues(Offsets['SecondOffset'])
+OffsetsIndex = 1
+for index, value in ipairs(Offsets['FirstOffset']) do
+ if (Offsets['FirstOffset'][index].value == 1056964608) and (Offsets['SecondOffset'][index].value == 4575657221408423936) then
+  Offsets['FinalResults'][OffsetsIndex] = {}
+  Offsets['FinalResults'][OffsetsIndex] =  Offsets['FirstOffset'][index]
+  OffsetsIndex = OffsetsIndex + 1
+ end
+end
+for index, value in ipairs(Offsets['FinalResults']) do
+ Offsets['FinalResults'][index].address = Offsets['FinalResults'][index].address + 88
+ Offsets['FinalResults'][index].flags = 4
+end
+gg.loadResults(Offsets['FinalResults'])
+gg.getResults(9999)
+gg.editAll("1,425,689,928", gg.TYPE_DWORD)
+gg.clearResults()
+gg.setRanges(32)
+gg.searchNumber(18245222400, gg.TYPE_QWORD)
+HackersHouse = gg.getResults(250000)
+Offsets = {}
+Offsets['FirstOffset'] = {}
+Offsets['SecondOffset'] = {}
+Offsets['FinalResults'] = {}
+OffsetsIndex = 1
+for index, value in ipairs(HackersHouse) do
+ Offsets['FirstOffset'][OffsetsIndex] = {}
+ Offsets['FirstOffset'][OffsetsIndex].address = HackersHouse[index].address + -144
+ Offsets['FirstOffset'][OffsetsIndex].flags = gg.TYPE_QWORD
+ Offsets['SecondOffset'][OffsetsIndex] = {}
+ Offsets['SecondOffset'][OffsetsIndex].address = HackersHouse[index].address + -4
+ Offsets['SecondOffset'][OffsetsIndex].flags = gg.TYPE_QWORD OffsetsIndex = OffsetsIndex + 1
+end
+Offsets['FirstOffset'] = gg.getValues(Offsets['FirstOffset'])
+Offsets['SecondOffset'] = gg.getValues(Offsets['SecondOffset'])
+OffsetsIndex = 1
+for index, value in ipairs(Offsets['FirstOffset']) do
+ if (Offsets['FirstOffset'][index].value == 1056964608) and (Offsets['SecondOffset'][index].value == 4575657221408423936) then
+  Offsets['FinalResults'][OffsetsIndex] = {}
+  Offsets['FinalResults'][OffsetsIndex] =  Offsets['FirstOffset'][index]
+  OffsetsIndex = OffsetsIndex + 1
+ end
+end
+for index, value in ipairs(Offsets['FinalResults']) do
+ Offsets['FinalResults'][index].address = Offsets['FinalResults'][index].address + 92
+ Offsets['FinalResults'][index].flags = 4
+end
+gg.loadResults(Offsets['FinalResults'])
+gg.getResults(9999)
+gg.editAll("-1,425,689,871", gg.TYPE_DWORD)
+gg.clearResults()
+gg.setRanges(32)
+gg.searchNumber(18245222400, gg.TYPE_QWORD)
+HackersHouse = gg.getResults(250000)
+Offsets = {}
+Offsets['FirstOffset'] = {}
+Offsets['SecondOffset'] = {}
+Offsets['FinalResults'] = {}
+OffsetsIndex = 1
+for index, value in ipairs(HackersHouse) do
+ Offsets['FirstOffset'][OffsetsIndex] = {}
+ Offsets['FirstOffset'][OffsetsIndex].address = HackersHouse[index].address + -144
+ Offsets['FirstOffset'][OffsetsIndex].flags = gg.TYPE_QWORD
+ Offsets['SecondOffset'][OffsetsIndex] = {}
+ Offsets['SecondOffset'][OffsetsIndex].address = HackersHouse[index].address + -4
+ Offsets['SecondOffset'][OffsetsIndex].flags = gg.TYPE_QWORD OffsetsIndex = OffsetsIndex + 1
+end
+Offsets['FirstOffset'] = gg.getValues(Offsets['FirstOffset'])
+Offsets['SecondOffset'] = gg.getValues(Offsets['SecondOffset'])
+OffsetsIndex = 1
+for index, value in ipairs(Offsets['FirstOffset']) do
+
+if (Offsets['FirstOffset'][index].value == 1056964608) and (Offsets['SecondOffset'][index].value == 4575657221408423936) then
+  Offsets['FinalResults'][OffsetsIndex] = {}
+  Offsets['FinalResults'][OffsetsIndex] =  Offsets['FirstOffset'][index]
+  OffsetsIndex = OffsetsIndex + 1
+ end
+end
+for index, value in ipairs(Offsets['FinalResults']) do
+ Offsets['FinalResults'][index].address = Offsets['FinalResults'][index].address + 100
+ Offsets['FinalResults'][index].flags = 4
+end
+gg.loadResults(Offsets['FinalResults'])
+gg.getResults(9999)
+gg.editAll("-71", gg.TYPE_DWORD)
+gg.clearResults()
+end
+
+if menu==2 then
+gg.toast("SPEED HACK ")
+end
