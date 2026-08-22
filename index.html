@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ARK  WithdrawaL MANAGER</title>
+<title>AKR Lottery Manager</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Segoe UI,Arial,sans-serif;background:linear-gradient(135deg,#111827,#1e293b);color:#fff;min-height:100vh;padding:18px}
@@ -39,6 +39,9 @@ button:disabled{opacity:.5;cursor:not-allowed}
   <div class="header">
     <h1>🏦 AKR Lottery Manager</h1>
     <div class="sub">Login • Profile • Bank Account • Withdrawal</div>
+    <div style="margin-top:14px">
+      <button id="logoutBtn" class="secondary" onclick="logout()" style="display:none">🚪 Logout</button>
+    </div>
   </div>
 
   <div id="status" class="status"></div>
@@ -199,6 +202,7 @@ async function login(){
     state.userId=state.userData.id;
     state.phone=phone;
     state.isLoggedIn=true;
+    document.getElementById('logoutBtn').style.display='inline-block';
 
     document.getElementById('loginCard').classList.add('hidden');
     document.getElementById('profileCard').classList.remove('hidden');
@@ -210,6 +214,40 @@ async function login(){
     status('Login successful.','success');
   }catch(e){status(e.message,'error')}
   finally{setBusy('loginBtn',false)}
+}
+
+function logout(){
+  state.token = null;
+  state.userId = null;
+  state.userData = null;
+  state.phone = null;
+  state.bankAccounts = [];
+  state.bankOtpSent = false;
+  state.withdrawOtpSent = false;
+  state.isLoggedIn = false;
+
+  document.getElementById('phone').value = '';
+  document.getElementById('password').value = 'Sanju2005';
+  document.getElementById('bankList').innerHTML = '<p class="note">No bank accounts found.</p>';
+  document.getElementById('withdrawUpi').innerHTML = '<option value="">Select UPI</option>';
+  document.getElementById('amount').value = '';
+  document.getElementById('bankOtp').value = '';
+  document.getElementById('withdrawOtp').value = '';
+  document.getElementById('bankForm').classList.add('hidden');
+  document.getElementById('bankOtpBox').classList.add('hidden');
+  document.getElementById('withdrawOtpBox').classList.add('hidden');
+  document.getElementById('addBankBtn').disabled = true;
+  document.getElementById('withdrawBtn').disabled = true;
+
+  document.getElementById('profileCard').classList.add('hidden');
+  document.getElementById('bankCard').classList.add('hidden');
+  document.getElementById('withdrawCard').classList.add('hidden');
+  document.getElementById('resultCard').classList.add('hidden');
+  document.getElementById('loginCard').classList.remove('hidden');
+  document.getElementById('logoutBtn').style.display = 'none';
+
+  status('Logged out successfully.','success');
+  document.getElementById('phone').focus();
 }
 
 function displayProfile(){
