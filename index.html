@@ -58,8 +58,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
       <div class="item"><small>User ID</small><span id="uid">-</span></div>
       <div class="item"><small>Username</small><span id="username">-</span></div>
       <div class="item"><small>Phone</small><span id="profilePhone">-</span></div>
-      <div class="item"><small>Customer ID</small><span id="customerId">-</span></div>
-      <div class="item" style="grid-column:1/-1"><small>Wallet</small><span class="balance" id="balance">₹0</span></div>
+            <div class="item" style="grid-column:1/-1"><small>Wallet</small><span class="balance" id="balance">₹0</span></div>
     </div>
     <br>
     <button class="secondary" onclick="refreshProfile()">Refresh Balance</button>
@@ -197,7 +196,6 @@ function displayProfile(){
   document.getElementById('uid').textContent=u.id??'-';
   document.getElementById('username').textContent=u.username??'-';
   document.getElementById('profilePhone').textContent=u.phone??state.phone??'-';
-  document.getElementById('customerId').textContent=u.customerId??'-';
   document.getElementById('balance').textContent='₹'+(u.wallet??0);
 }
 
