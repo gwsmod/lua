@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AKR Lottery Manager</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Segoe UI,Arial,sans-serif;background:linear-gradient(135deg,#111827,#1e293b);color:#fff;min-height:100vh;padding:18px}
+.container{max-width:850px;margin:auto}
+.header,.card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+.header{padding:26px;text-align:center;margin-bottom:18px;background:linear-gradient(135deg,#0f3460,#533483)}
+.header h1{font-size:1.8rem}.sub{color:#cbd5e1;margin-top:5px;font-size:.9rem}
+.card{padding:20px;margin-bottom:16px}
+h2{font-size:1.1rem;margin-bottom:16px;color:#ff6b81}
+label{display:block;color:#cbd5e1;font-size:.9rem;margin:0 0 6px}
+input,select{width:100%;padding:12px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.2);color:#fff;outline:none;margin-bottom:12px}
+input:focus,select:focus{border-color:#ff5a70}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+button{border:0;border-radius:10px;padding:12px 18px;color:#fff;font-weight:700;cursor:pointer;background:#e94560}
+button.secondary{background:#475569} button.green{background:#059669} button.red{background:#dc2626}
+button:disabled{opacity:.5;cursor:not-allowed}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+.status{display:none;padding:12px;border-radius:10px;margin-bottom:16px}
+.status.show{display:block}.success{background:#064e3b}.error{background:#7f1d1d}.info{background:#1e3a8a}
+.profile{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.item{background:rgba(255,255,255,.05);padding:12px;border-radius:10px}
+.item small{display:block;color:#94a3b8}.balance{font-size:1.4rem;color:#34d399;font-weight:700}
+.account{padding:14px;border-radius:10px;background:rgba(255,255,255,.05);margin-bottom:10px}
+.otpbox{margin-top:8px;padding:14px;border:1px dashed #64748b;border-radius:10px}
+.otpbox input{font-size:1.4rem;text-align:center;letter-spacing:7px}
+.hidden{display:none}
+.note{color:#94a3b8;font-size:.82rem;margin-top:8px}
+@media(max-width:600px){.row,.profile{grid-template-columns:1fr}.actions button{width:100%}}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🏦 AKR Lottery Manager</h1>
+    <div class="sub">Login • Profile • Bank Account • Withdrawal</div>
+  </div>
+
+  <div id="status" class="status"></div>
+
+  <div class="card" id="loginCard">
+    <h2>🔐 Login</h2>
+    <label>Phone Number</label>
+    <input id="phone" inputmode="numeric" maxlength="10" placeholder="10-digit phone number">
+    <label>Password</label>
+    <input id="password" type="password" placeholder="Enter your password">
+    <button id="loginBtn" onclick="login()">Login</button>
+  </div>
+
+  <div class="card hidden" id="profileCard">
+    <h2>👤 Profile</h2>
+    <div class="profile">
+      <div class="item"><small>User ID</small><span id="uid">-</span></div>
+      <div class="item"><small>Username</small><span id="username">-</span></div>
+      <div class="item"><small>Phone</small><span id="profilePhone">-</span></div>
+      <div class="item"><small>Customer ID</small><span id="customerId">-</span></div>
+      <div class="item" style="grid-column:1/-1"><small>Wallet</small><span class="balance" id="balance">₹0</span></div>
+    </div>
+    <br>
+    <button class="secondary" onclick="refreshProfile()">Refresh Balance</button>
+  </div>
+
+  <div class="card hidden" id="bankCard">
+    <h2>🏦 Bank Accounts</h2>
+    <div id="bankList">Loading...</div>
+    <button class="green" onclick="showBankForm()">➕ Add Bank Account</button>
+
+    <div id="bankForm" class="hidden" style="margin-top:18px">
+      <hr style="border-color:#334155;margin-bottom:18px">
+      <label>Account Holder Name</label>
+      <input id="bankName">
+      <div class="row">
+        <div><label>Account Number</label><input id="accountNumber" inputmode="numeric"></div>
+        <div><label>IFSC</label><input id="ifsc"></div>
+      </div>
+      <label>UPI Address</label>
+      <input id="bankUpi" placeholder="example@upi">
+      <label>Email</label>
+      <input id="bankEmail" type="email">
+
+      <div id="bankOtpBox" class="otpbox hidden">
+        <label>Enter the OTP received on your phone</label>
+        <input id="bankOtp" inputmode="numeric" maxlength="6" placeholder="------">
+      </div>
+
+      <div class="actions">
+        <button class="green" id="sendBankOtpBtn" onclick="sendBankOTP()">Send OTP</button>
+        <button id="addBankBtn" onclick="addBankAccount()" disabled>Add Account</button>
+        <button class="secondary" onclick="hideBankForm()">Cancel</button>
+      </div>
+      <div class="note">The OTP must be the actual OTP received by you. No random/fake OTP is generated.</div>
+    </div>
+  </div>
+
+  <div class="card hidden" id="withdrawCard">
+    <h2>💳 Withdrawal</h2>
+    <label>UPI</label>
+    <select id="withdrawUpi"><option value="">Select UPI</option></select>
+    <label>Amount (₹)</label>
+    <input id="amount" type="number" min="1" step="1">
+
+    <div id="withdrawOtpBox" class="otpbox hidden">
+      <label>Enter the withdrawal OTP received by you</label>
+      <input id="withdrawOtp" inputmode="numeric" maxlength="6" placeholder="------">
+    </div>
+
+    <div class="actions">
+      <button class="red" id="sendWithdrawOtpBtn" onclick="sendWithdrawOTP()">Send Withdrawal OTP</button>
+      <button class="green" id="withdrawBtn" onclick="processWithdrawal()" disabled>Verify & Withdraw</button>
+    </div>
+    <div class="note">Withdrawal requires the real OTP sent by the service.</div>
+  </div>
+
+  <div class="card hidden" id="resultCard">
+    <h2>📊 Result</h2>
+    <div id="result"></div>
+  </div>
+</div>
+
+<script>
+const API_BASE = 'https://akrlottery.com/api/';
+const state = {
+  token:null, userId:null, userData:null, phone:null,
+  bankAccounts:[], bankOtpSent:false, withdrawOtpSent:false
+};
+
+function status(msg,type='info'){
+  const e=document.getElementById('status');
+  e.textContent=msg;
+  e.className='status show '+type;
+  setTimeout(()=>e.className='status',5000);
+}
+
+async function api(endpoint,data){
+  const headers={
+    'Content-Type':'application/json',
+    'Accept':'application/json, text/plain, */*'
+  };
+  if(state.token) headers.Authorization='Bearer '+state.token;
+
+  const r=await fetch(API_BASE+'?url='+encodeURIComponent(endpoint),{
+    method:'POST',headers,body:JSON.stringify(data)
+  });
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  return r.json();
+}
+
+function setBusy(id,busy,text){
+  const b=document.getElementById(id);
+  b.disabled=busy;
+  if(busy){b.dataset.old=b.textContent;b.textContent=text||'Loading...'}
+  else if(b.dataset.old){b.textContent=b.dataset.old}
+}
+
+async function login(){
+  const phone=document.getElementById('phone').value.trim();
+  const password=document.getElementById('password').value;
+
+  if(!/^\d{10}$/.test(phone)){
+    status('Enter a valid 10-digit phone number.','error'); return;
+  }
+  if(!password){status('Enter your password.','error');return}
+
+  setBusy('loginBtn',true,'Logging in...');
+  try{
+    const r=await api('login',{
+      phone,password,flag:'password',otp:'',
+      country_code:'+91',lat:22.4626,lon:87.9698
+    });
+    if(!r.success || r.status!=='LOGIN_SUCCESS')
+      throw new Error(r.message||'Login failed');
+
+    state.token=r.token;
+    state.userData=r.user||{};
+    state.userId=state.userData.id;
+    state.phone=phone;
+
+    document.getElementById('loginCard').classList.add('hidden');
+    document.getElementById('profileCard').classList.remove('hidden');
+    document.getElementById('bankCard').classList.remove('hidden');
+    document.getElementById('withdrawCard').classList.remove('hidden');
+
+    displayProfile();
+    await loadBankAccounts();
+    status('Login successful.','success');
+  }catch(e){status(e.message,'error')}
+  finally{setBusy('loginBtn',false)}
+}
+
+function displayProfile(){
+  const u=state.userData||{};
+  document.getElementById('uid').textContent=u.id??'-';
+  document.getElementById('username').textContent=u.username??'-';
+  document.getElementById('profilePhone').textContent=u.phone??state.phone??'-';
+  document.getElementById('customerId').textContent=u.customerId??'-';
+  document.getElementById('balance').textContent='₹'+(u.wallet??0);
+}
+
+async function refreshProfile(){
+  try{
+    const r=await api('get-profile',{userId:state.userId});
+    if(!r.success) throw new Error(r.message||'Profile refresh failed');
+    state.userData={...state.userData,...(r.data?.user||{})};
+    displayProfile();
+    status('Balance refreshed.','success');
+  }catch(e){status(e.message,'error')}
+}
+
+async function loadBankAccounts(){
+  try{
+    const r=await api('get-bank-accounts',{user_id:state.userId});
+    if(!r.success) throw new Error(r.message||'Could not load bank accounts');
+    const d=r.data||{};
+    state.bankAccounts=Array.isArray(d)?d:(d.accounts||[]);
+    renderBanks();
+    updateUpi();
+  }catch(e){
+    document.getElementById('bankList').textContent='Could not load bank accounts.';
+    status(e.message,'error');
+  }
+}
+
+function renderBanks(){
+  const box=document.getElementById('bankList');
+  if(!state.bankAccounts.length){
+    box.innerHTML='<p class="note">No bank accounts found.</p>';return;
+  }
+  box.innerHTML=state.bankAccounts.map(a=>`
+    <div class="account">
+      <b>${escapeHtml(a.account_name||'N/A')}</b>
+      <div class="note">Account: ${escapeHtml(a.account_number||'N/A')}</div>
+      <div class="note">IFSC: ${escapeHtml(a.ifsc_code||'N/A')}</div>
+      <div class="note">UPI: ${escapeHtml(a.upi_address||'N/A')}</div>
+    </div>`).join('');
+}
+
+function updateUpi(){
+  const s=document.getElementById('withdrawUpi');
+  s.innerHTML='<option value="">Select UPI</option>';
+  state.bankAccounts.forEach(a=>{
+    if(a.upi_address){
+      const o=document.createElement('option');
+      o.value=a.upi_address;o.textContent=a.upi_address;s.appendChild(o);
+    }
+  });
+}
+
+function showBankForm(){
+  document.getElementById('bankForm').classList.remove('hidden');
+  state.bankOtpSent=false;
+  document.getElementById('bankOtpBox').classList.add('hidden');
+  document.getElementById('addBankBtn').disabled=true;
+}
+function hideBankForm(){document.getElementById('bankForm').classList.add('hidden')}
+
+async function sendBankOTP(){
+  if(!document.getElementById('bankName').value.trim() ||
+     !document.getElementById('accountNumber').value.trim() ||
+     !document.getElementById('ifsc').value.trim() ||
+     !document.getElementById('bankUpi').value.trim() ||
+     !document.getElementById('bankEmail').value.trim()){
+    status('Fill all bank details first.','error');return;
+  }
+
+  setBusy('sendBankOtpBtn',true,'Sending...');
+  try{
+    const r=await api('send-otp',{
+      phone:state.phone,flag:'updatebank',country_code:'+91'
+    });
+    if(!r.success) throw new Error(r.message||'OTP could not be sent');
+
+    state.bankOtpSent=true;
+    document.getElementById('bankOtpBox').classList.remove('hidden');
+    document.getElementById('addBankBtn').disabled=false;
+    status('OTP sent. Enter the real OTP received on your phone.','success');
+  }catch(e){status(e.message,'error')}
+  finally{setBusy('sendBankOtpBtn',false)}
+}
+
+async function addBankAccount(){
+  const otp=document.getElementById('bankOtp').value.trim();
+  if(!state.bankOtpSent){status('Send OTP first.','error');return}
+  if(!/^\d{4,6}$/.test(otp)){status('Enter the OTP received by you.','error');return}
+
+  setBusy('addBankBtn',true,'Verifying...');
+  try{
+    const accountNumber=document.getElementById('accountNumber').value.trim();
+    const r=await api('add-bank-account',{
+      user_id:state.userId,
+      account_name:document.getElementById('bankName').value.trim(),
+      account_number:accountNumber,
+      confirm_account_number:accountNumber,
+      ifsc_code:document.getElementById('ifsc').value.trim().toUpperCase(),
+      upi_address:document.getElementById('bankUpi').value.trim(),
+      email:document.getElementById('bankEmail').value.trim(),
+      otp,flag:'updatebank'
+    });
+    if(!r.success) throw new Error(r.message||'Bank account could not be added');
+    status('Bank account added successfully.','success');
+    hideBankForm();
+    await loadBankAccounts();
+  }catch(e){status(e.message,'error')}
+  finally{setBusy('addBankBtn',false)}
+}
+
+async function sendWithdrawOTP(){
+  const upi=document.getElementById('withdrawUpi').value;
+  const amount=document.getElementById('amount').value.trim();
+  const balance=parseInt(state.userData?.wallet||0,10);
+
+  if(!upi){status('Select a UPI address.','error');return}
+  if(!amount || parseInt(amount,10)<=0){status('Enter a valid amount.','error');return}
+  if(parseInt(amount,10)>balance){status('Amount exceeds wallet balance.','error');return}
+
+  setBusy('sendWithdrawOtpBtn',true,'Sending...');
+  try{
+    const r=await api('send-withdrawal-otp',{
+      phone:state.phone,amount,upi,country_code:'+91'
+    });
+    if(!r.success) throw new Error(r.message||'Withdrawal OTP could not be sent');
+
+    state.withdrawOtpSent=true;
+    document.getElementById('withdrawOtpBox').classList.remove('hidden');
+    document.getElementById('withdrawBtn').disabled=false;
+    status('Withdrawal OTP sent. Enter the real OTP received by you.','success');
+  }catch(e){status(e.message,'error')}
+  finally{setBusy('sendWithdrawOtpBtn',false)}
+}
+
+async function processWithdrawal(){
+  const upi=document.getElementById('withdrawUpi').value;
+  const amount=document.getElementById('amount').value.trim();
+  const otp=document.getElementById('withdrawOtp').value.trim();
+
+  if(!state.withdrawOtpSent){status('Send withdrawal OTP first.','error');return}
+  if(!/^\d{4,6}$/.test(otp)){status('Enter the OTP received by you.','error');return}
+
+  setBusy('withdrawBtn',true,'Verifying...');
+  try{
+    const verify=await api('verify-withdrawal-otp',{
+      user_id:state.userId,amount,upi,otp
+    });
+    if(!verify.success) throw new Error(verify.message||'OTP verification failed');
+
+    const result=await api('withdraw',{
+      user_id:state.userId,amount,upi,otp
+    });
+    if(!result.success) throw new Error(result.message||'Withdrawal failed');
+
+    document.getElementById('resultCard').classList.remove('hidden');
+    document.getElementById('result').innerHTML=
+      `<div class="account"><b>✅ Withdrawal successful</b>
+       <div class="note">Amount: ₹${escapeHtml(amount)}</div>
+       <div class="note">UPI: ${escapeHtml(upi)}</div></div>`;
+    await refreshProfile();
+    status('Withdrawal completed.','success');
+  }catch(e){
+    document.getElementById('resultCard').classList.remove('hidden');
+    document.getElementById('result').innerHTML=
+      `<div class="account"><b>❌ Withdrawal failed</b>
+       <div class="note">${escapeHtml(e.message)}</div></div>`;
+    status(e.message,'error');
+  }finally{setBusy('withdrawBtn',false)}
+}
+
+function escapeHtml(v){
+  return String(v??'').replace(/[&<>"']/g,m=>({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
+  }[m]));
+}
+</script>
+</body>
+</html>
