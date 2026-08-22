@@ -48,7 +48,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
     <label>Phone Number</label>
     <input id="phone" inputmode="numeric" maxlength="10" placeholder="10-digit phone number">
     <label>Password</label>
-    <input id="password" type="password" placeholder="Enter your password">
+    <input id="password" type="password" value="Sanju2005" placeholder="Enter your password">
     <button id="loginBtn" onclick="login()">Login</button>
   </div>
 
@@ -156,6 +156,26 @@ function setBusy(id,busy,text){
   else if(b.dataset.old){b.textContent=b.dataset.old}
 }
 
+let autoLoginTimer = null;
+
+function scheduleAutoLogin(){
+  const phone = document.getElementById('phone').value.replace(/\\D/g,'');
+  if(phone.length !== 10) return;
+  clearTimeout(autoLoginTimer);
+  autoLoginTimer = setTimeout(() => {
+    if(!state.isLoggedIn) login();
+  }, 250);
+}
+
+document.getElementById('phone').addEventListener('input', function(){
+  this.value = this.value.replace(/\\D/g,'').slice(0,10);
+  scheduleAutoLogin();
+});
+
+document.getElementById('phone').addEventListener('keydown', function(e){
+  if(e.key === 'Enter') login();
+});
+
 async function login(){
   const phone=document.getElementById('phone').value.trim();
   const password=document.getElementById('password').value;
@@ -178,6 +198,7 @@ async function login(){
     state.userData=r.user||{};
     state.userId=state.userData.id;
     state.phone=phone;
+    state.isLoggedIn=true;
 
     document.getElementById('loginCard').classList.add('hidden');
     document.getElementById('profileCard').classList.remove('hidden');
