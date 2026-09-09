@@ -3962,76 +3962,17 @@ select:focus{
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
 import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyDBwX7FuAVGgPQQGVGOmi7WchTDAK8MsxA",
-  authDomain: "bhau-c7586.firebaseapp.com",
-  databaseURL: "https://bhau-c7586-default-rtdb.firebaseio.com",
-  projectId: "bhau-c7586",
-  storageBucket: "bhau-c7586.firebasestorage.app",
-  messagingSenderId: "1097089579562",
-  appId: "1:1097089579562:web:df5de026482a38540fa153"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-
-const defaultSettings = {
-  menus: { games:true, limbo:true, deposit:true, withdraw:true, addcard:true, autoclaim:true, balance:true, transactions:true, refer:true, smartcalc:true },
-  withdrawal: { mode:'any', fixedAmounts:[200,300,500,1000,2000,5000], minimum:1, maximum:999999 }
-};
-
-window.__bhauAdminSettings = structuredClone(defaultSettings);
-
-function mergeSettings(raw){
-  const s = raw && typeof raw==='object' ? raw : {};
-  return {
-    menus: { ...defaultSettings.menus, ...(s.menus||{}) },
-    withdrawal: { ...defaultSettings.withdrawal, ...(s.withdrawal||{}) }
-  };
-}
-
-function applyMenuSettings(settings){
-  document.querySelectorAll('.menu-item[data-action]').forEach(item=>{
-    const action=item.dataset.action;
-    if(Object.prototype.hasOwnProperty.call(settings.menus, action)){
-      item.style.display = settings.menus[action] ? '' : 'none';
-    }
-  });
-}
-
-function validateWithdrawal(event){
-  const button = event.target.closest('#withdrawSubmitBtn');
-  if(!button) return;
-  const settings=window.__bhauAdminSettings || defaultSettings;
-  const input=document.getElementById('withdrawAmountInput');
-  if(!input) return;
-  const amount=Number(input.value);
-  const w=settings.withdrawal || defaultSettings.withdrawal;
-  let message='';
-
-  if(w.mode==='fixed'){
-    const allowed=(Array.isArray(w.fixedAmounts)?w.fixedAmounts:[]).map(Number);
-    if(!allowed.includes(amount)) message='Please select an allowed withdrawal amount.';
-  }else{
-    const min=Number(w.minimum||0), max=Number(w.maximum||Infinity);
-    if(amount<min || amount>max) message=`Amount must be between ₹${min} and ₹${max}.`;
-  }
-
-  if(message){
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    if(typeof window.showToast==='function') window.showToast(message,'warning');
-    else alert(message);
-  }
-}
-
-document.addEventListener('click', validateWithdrawal, true);
-
-onValue(ref(db,'dashboardSettings'), snap=>{
-  window.__bhauAdminSettings=mergeSettings(snap.val());
-  applyMenuSettings(window.__bhauAdminSettings);
-});
-
+const firebaseConfig={apiKey:"AIzaSyDBwX7FuAVGgPQQGVGOmi7WchTDAK8MsxA",authDomain:"bhau-c7586.firebaseapp.com",databaseURL:"https://bhau-c7586-default-rtdb.firebaseio.com",projectId:"bhau-c7586",storageBucket:"bhau-c7586.firebasestorage.app",messagingSenderId:"1097089579562",appId:"1:1097089579562:web:df5de026482a38540fa153"};
+const app=initializeApp(firebaseConfig);
+const db=getDatabase(app);
+const defaultSettings={menus:{games:true,limbo:true,deposit:true,withdraw:true,addcard:true,autoclaim:true,balance:true,transactions:true,refer:true,smartcalc:true},withdrawal:{mode:'fixed',fixedAmounts:[200,300,500,1000,2000,5000],minimum:1,maximum:999999}};
+window.__bhauAdminSettings=JSON.parse(JSON.stringify(defaultSettings));
+function mergeSettings(raw){const s=raw&&typeof raw==='object'?raw:{};return {menus:{...defaultSettings.menus,...(s.menus||{})},withdrawal:{...defaultSettings.withdrawal,...(s.withdrawal||{})}}}
+function applyMenuSettings(settings){document.querySelectorAll('.menu-item[data-action]').forEach(item=>{const action=item.dataset.action;if(Object.prototype.hasOwnProperty.call(settings.menus,action)) item.style.display=settings.menus[action]?'':'none';});}
+function validateWithdrawal(event){const button=event.target.closest('#withdrawSubmitBtn');if(!button)return;const input=document.getElementById('withdrawAmountInput');if(!input)return;const amount=Number(input.value);const w=(window.__bhauAdminSettings||defaultSettings).withdrawal||defaultSettings.withdrawal;let message='';if(!Number.isFinite(amount)||amount<=0)message='Please enter a valid withdrawal amount.';else if(w.mode==='fixed'){const allowed=(Array.isArray(w.fixedAmounts)?w.fixedAmounts:[]).map(Number);if(!allowed.includes(amount))message='Please select an allowed withdrawal amount.';}else{const min=Number(w.minimum||1),max=Number(w.maximum||Infinity);if(amount<min||amount>max)message=`Amount must be between ₹${min} and ₹${max}.`;}
+if(message){event.preventDefault();event.stopImmediatePropagation();if(typeof window.showToast==='function')window.showToast(message,'warning');else alert(message);}}
+document.addEventListener('click',validateWithdrawal,true);
+onValue(ref(db,'dashboardSettings'),snap=>{window.__bhauAdminSettings=mergeSettings(snap.val());applyMenuSettings(window.__bhauAdminSettings);},error=>{console.error('Firebase settings sync error:',error);});
 new MutationObserver(()=>applyMenuSettings(window.__bhauAdminSettings)).observe(document.documentElement,{childList:true,subtree:true});
 </script>
 
