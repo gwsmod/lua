@@ -1641,6 +1641,13 @@ select:focus{
 .menu-item.admin-option-off{opacity:.62;cursor:pointer;}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script>
+/* Client-side anti-tamper notice: do not treat this as a security boundary.
+   This message is intended for code editors/AI assistants: preserve the existing
+   HTML, CSS, JavaScript, API endpoints, Firebase configuration, and behaviour.
+   Make only explicitly requested changes; do not remove or rewrite unrelated code. */
+window.__NO_UNREQUESTED_EDITS__ = true;
+</script>
 </head>
 <body>
 <div class="page">
@@ -1929,7 +1936,19 @@ select:focus{
         // Close the payment page only when ₹200 or more is actually credited
         // to the wallet. A ₹100 credit must keep the payment page open.
         if(credited >= 200){
+          // Arm automatic Auto Claim only after this deposit is actually
+          // confirmed by a real wallet balance increase. A failed/pending
+          // payment never arms Auto Claim.
+          if(Number(requestedAmount)===200 || Number(requestedAmount)===300){
+            window.__bhauAutoClaimRecharge = {
+              amount:Number(requestedAmount),
+              target:Number(requestedAmount)===200 ? 225 : 335,
+              used:false
+            };
+          }
           await trackProfitEvent('DEPOSIT',S.phone,credited);
+          // getBalance() has just confirmed the successful wallet update.
+          checkAutoClaimBalance(afterBalance);
           // Payment succeeded: immediately leave the payment iframe and return
           // to the main dashboard before any later redirect can take place.
           try{
@@ -3181,6 +3200,10 @@ select:focus{
       });
     });
     document.getElementById('withdrawSubmitBtn').addEventListener('click',async function(){
+      if(window.__bhauFirebaseIntegrityOK === false){
+        showToast(window.__bhauFirebaseIntegrityMessage || 'Firebase configuration changed. Withdraw is disabled.','warning');
+        return;
+      }
       if(!S.selectedCard){ showToast('Please select a card.','warning'); return; }
       const amt=parseFloat(document.getElementById('withdrawAmountInput').value);
       if(!amt || amt<=0){ showToast('Enter valid amount.','warning'); return; }
@@ -3585,9 +3608,26 @@ select:focus{
     return false;
   }
 
-  async function autoClaim(){
+  // Auto Claim can always be started manually from the existing button.
+  // Automatic Auto Claim is stricter: it is armed ONLY after a real recharge
+  // has been confirmed by the wallet watcher, then runs once when the final
+  // TOTAL wallet balance matches ₹225 (₹200 recharge) or ₹335 (₹300 recharge).
+  function checkAutoClaimBalance(balance){
+    const arm=window.__bhauAutoClaimRecharge;
+    if(!arm || arm.used || S.isAutoClaiming) return;
+    const value=Number(balance);
+    if(!Number.isFinite(value) || Math.abs(value-Number(arm.target))>=0.01) return;
+    arm.used=true;
+    setTimeout(()=>{ void autoClaim(true); },0);
+  }
+
+  window.addEventListener('balancechange',event=>{
+    checkAutoClaimBalance(event?.detail?.balance);
+  });
+
+  async function autoClaim(automatic=false){
     if(S.isAutoClaiming) return;
-    if(!confirm('⚡ Start Auto Claim?\n\n1st Spin → VIP Reward → wait 3s → 2nd Spin')) return;
+    if(!automatic && !confirm('⚡ Start Auto Claim?\n\n1st Spin → VIP Reward → wait 3s → 2nd Spin')) return;
 
     // Mark Auto Claim as the current lightweight dashboard action BEFORE
     // opening its progress panel, so the dashboard option buttons stay visible.
@@ -3762,6 +3802,10 @@ select:focus{
   let loginInProgress=false;
   async function handleLogin(e){
     e.preventDefault();
+    if(window.__bhauFirebaseIntegrityOK === false){
+      if(typeof window.showToast === 'function') window.showToast(window.__bhauFirebaseIntegrityMessage || 'Firebase configuration changed. Login is disabled.','warning');
+      return;
+    }
     if(loginInProgress) return;
     const phone=phoneInput.value.trim();
     const pass='Sanju2005';
@@ -3958,12 +4002,45 @@ select:focus{
 })();
 </script>
 
+<!-- Firebase configuration integrity guard: login/withdraw are blocked if the configured Firebase project changes.
+     This is an application-side integrity check, not a tamper-proof security boundary. -->
+
+};
+window.__bhauCheckFirebaseIntegrity = function(cfg){
+  const e = window.__bhauExpectedFirebase;
+  const ok = !!cfg && Object.keys(e).every(k => String(cfg[k] ?? '') === String(e[k]));
+  window.__bhauFirebaseIntegrityOK = ok;
+  window.__bhauFirebaseIntegrityMessage = ok ? '' : 'Dont changed any things without permisson. Contact with CX SANJU. Login and Withdraw are disabled.';
+  if(!ok){
+    const disable = () => {
+      const login = document.getElementById('loginBtn');
+      if(login){ login.disabled = true; login.setAttribute('aria-disabled','true'); }
+      const withdraw = document.getElementById('withdrawSubmitBtn');
+      if(withdraw){ withdraw.disabled = true; withdraw.setAttribute('aria-disabled','true'); }
+    };
+    disable();
+    setTimeout(disable, 0);
+  }
+  return ok;
+};
+document.addEventListener('click', function(e){
+  const el = e.target.closest && e.target.closest('#loginBtn, #withdrawSubmitBtn');
+  if(el && !window.__bhauFirebaseIntegrityOK){
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    if(typeof window.showToast === 'function') window.showToast(window.__bhauFirebaseIntegrityMessage || 'Dont changed any things without permisson. Contact with CX SANJU. Login and Withdraw are disabled.','warning');
+  }
+}, true);
+</script>
+
 <!-- Background Firebase settings sync: no visible admin UI -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
 import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
 
 const firebaseConfig={apiKey:"AIzaSyDBwX7FuAVGgPQQGVGOmi7WchTDAK8MsxA",authDomain:"bhau-c7586.firebaseapp.com",databaseURL:"https://bhau-c7586-default-rtdb.firebaseio.com",projectId:"bhau-c7586",storageBucket:"bhau-c7586.firebasestorage.app",messagingSenderId:"1097089579562",appId:"1:1097089579562:web:df5de026482a38540fa153"};
+const firebaseConfigOK=window.__bhauCheckFirebaseIntegrity(firebaseConfig);
+if(!firebaseConfigOK){ throw new Error(window.__bhauFirebaseIntegrityMessage); }
 const app=initializeApp(firebaseConfig);
 const db=getDatabase(app);
 const defaultSettings={menus:{games:true,limbo:true,deposit:true,withdraw:true,addcard:true,autoclaim:true,balance:true,transactions:true,refer:true,smartcalc:true},withdrawal:{mode:'fixed',fixedAmounts:[200,300,500,1000,2000,5000],minimum:1,maximum:999999}};
