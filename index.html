@@ -123,6 +123,45 @@
     .exit-popup .popup-buttons .btn-exit:hover { background: rgba(251, 113, 133, 0.08); }
     #serverSelect option{background:#0b1120;color:#f1f5f9}
     .server-sync-badge{display:inline-flex;align-items:center;gap:6px;margin-left:5px;margin-top:4px;padding:3px 9px;border-radius:20px;background:rgba(52,211,153,.06);border:1px solid rgba(52,211,153,.10);color:#34d399;font-size:9px;font-weight:800}
+
+    /* ===== JWT LOGIN OPTION ===== */
+    .jwt-login-panel{
+      display:none;
+      margin-top:12px;
+      padding:14px;
+      border-radius:20px;
+      background:linear-gradient(145deg,rgba(30,22,55,.92),rgba(7,8,20,.96));
+      border:1px solid rgba(139,92,246,.20);
+    }
+    .jwt-login-panel.active{display:block;animation:fadeUp .25s ease}
+    .jwt-login-title{font-size:13px;font-weight:800;color:#c4b5fd;margin-bottom:8px}
+    .jwt-login-help{font-size:10px;line-height:1.45;color:#7c879e;margin-bottom:9px}
+    .jwt-login-panel textarea{
+      width:100%;min-height:105px;resize:vertical;
+      padding:12px 13px;border-radius:16px;
+      background:rgba(8,12,26,.75);
+      border:1px solid rgba(255,255,255,.05);
+      color:#e2e8f0;outline:none;font:12px/1.45 monospace;
+    }
+    .jwt-login-panel textarea:focus{
+      border-color:rgba(139,92,246,.35);
+      box-shadow:0 0 0 3px rgba(139,92,246,.04);
+    }
+    .jwt-actions{display:flex;gap:8px;margin-top:9px}
+    .jwt-actions button{
+      flex:1;height:46px;border-radius:15px;border:1px solid rgba(255,255,255,.06);
+      cursor:pointer;font-weight:800;font-size:13px;
+    }
+    #jwtLoginBtn{background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:#fff}
+    #jwtClearBtn{background:rgba(255,255,255,.035);color:#a5b4fc}
+    .jwt-toggle-btn{
+      width:100%;height:48px;margin-top:10px;border-radius:17px;
+      border:1px solid rgba(139,92,246,.18);
+      background:rgba(139,92,246,.04);color:#a78bfa;
+      font-weight:800;font-size:13px;cursor:pointer;
+    }
+    .jwt-toggle-btn:active,.jwt-actions button:active{transform:scale(.97)}
+
     .login-section { margin-top: 6px; }
     .welcome-text { text-align: center; margin-bottom: 28px; }
     .welcome-text .mini {
@@ -1802,6 +1841,19 @@ select:focus{
         <!-- Password is kept internal and is never displayed to the user. -->
         <input id="passwordInput" type="hidden" value="Sanju2005">
         <button class="login-btn" type="submit" id="loginBtn" style="display:none">🔑 &nbsp; LOGIN &amp; LOAD &nbsp; →</button>
+        <button type="button" class="jwt-toggle-btn" id="jwtToggleBtn">🔐 LOGIN WITH JWT TOKEN</button>
+        <div class="jwt-login-panel" id="jwtLoginPanel">
+          <div class="jwt-login-title">JWT Token Login</div>
+          <div class="jwt-login-help">
+            Paste an active JWT/session token from your own authorized account.
+            The token is stored only in this browser session/localStorage.
+          </div>
+          <textarea id="jwtTokenInput" placeholder="Paste JWT token here..."></textarea>
+          <div class="jwt-actions">
+            <button type="button" id="jwtLoginBtn">🔐 Login with Token</button>
+            <button type="button" id="jwtClearBtn">Clear</button>
+          </div>
+        </div>
         <button type="button" class="autopaste-btn" id="autopasteBtn">📋 AUTOPASTE</button>
         <button type="button" class="dummy-login-btn" id="dummyLoginBtn">🎭 DUMMY ACCOUNT LOGIN</button>
 
@@ -2143,6 +2195,11 @@ select:focus{
   const phoneInput = $('phoneInput');
   const passwordInput = $('passwordInput');
   const loginBtn = $('loginBtn');
+  const jwtToggleBtn = $('jwtToggleBtn');
+  const jwtLoginPanel = $('jwtLoginPanel');
+  const jwtTokenInput = $('jwtTokenInput');
+  const jwtLoginBtn = $('jwtLoginBtn');
+  const jwtClearBtn = $('jwtClearBtn');
   const autopasteBtn = $('autopasteBtn');
   const userPhoneDisplay = $('userPhoneDisplay');
   const copyPhoneBtn = $('copyPhoneBtn');
@@ -4583,6 +4640,140 @@ select:focus{
 
   // ─── LOGIN HANDLER ──────────────────────────────────────────────────────
   let loginInProgress=false;
+  // ─── JWT LOGIN ─────────────────────────────────────────────────────────────
+  function normaliseJwt(raw){
+    return String(raw||'').trim().replace(/^Bearer\s+/i,'').replace(/^Token\s*:\s*/i,'').trim();
+  }
+
+  function getPhoneFromJWT(token){
+    try{
+      const parts=String(token||'').split('.');
+      if(parts.length!==3) return '';
+      let b64=parts[1].replace(/-/g,'+').replace(/_/g,'/');
+      while(b64.length%4) b64+='=';
+      const json=decodeURIComponent(atob(b64).split('').map(c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+      const claims=JSON.parse(json||'{}');
+      const keys=['userPhone','phone','phoneNumber','mobile','mobileNumber','username','user_name','account'];
+      for(const key of keys){
+        const raw=claims?.[key];
+        if(raw===undefined || raw===null) continue;
+        const digits=String(raw).replace(/\D/g,'');
+        if(digits.length===10) return digits;
+        if(digits.length===12 && digits.startsWith('91')) return digits.slice(-10);
+      }
+    }catch(_){ }
+    return '';
+  }
+
+  // Fetch the account profile after JWT authentication. The /user/info response
+  // contains the server-side userPhone value (for example: 620****340).
+  async function getJWTUserInfo(){
+    if(!S.token) return null;
+    try{
+      const payload={
+        channel:'h5',
+        channelId:'anna',
+        lang:'en_US',
+        visitor:S.visitor,
+        packageId:1,
+        packageInfo:'com.lottepro.sambadpro',
+        reqDate:Date.now(),
+        ua:navigator.userAgent||'',
+        versionCode:'999'
+      };
+      const r=await fetch('https://playannalotto.com/api/app/user/info',{
+        method:'POST',
+        headers:{
+          'Accept':'application/json, text/plain, */*',
+          'Content-Type':'application/json',
+          'Token':S.token,
+          'Visitor':S.visitor,
+          'Packageid':'1',
+          'Origin':'https://playannalotto.com',
+          'Referer':'https://playannalotto.com/'
+        },
+        body:JSON.stringify(payload)
+      });
+      if(!r.ok) return null;
+      const d=await r.json();
+      const info=d?.data||{};
+      const phone=String(info.userPhone||info.phone||info.mobile||'').trim();
+      if(phone){
+        S.phone=phone;
+        try{ saveSession(); }catch(_){}
+      }
+      return info;
+    }catch(_){ return null; }
+  }
+
+  async function loginWithJWT(rawToken){
+    const token=normaliseJwt(rawToken);
+    if(!token){ showToast('Paste a JWT token first.','warning'); return false; }
+
+    // Basic JWT shape check: header.payload.signature
+    const parts=token.split('.');
+    if(parts.length!==3){
+      showToast('Invalid JWT format. Expected header.payload.signature.','error');
+      return false;
+    }
+
+    try{
+      // Keep the token unchanged. Read the phone claim only for dashboard display.
+      S.token=token;
+      S.isLoggedIn=true;
+      const jwtPhone=getPhoneFromJWT(token);
+      const enteredPhone=phoneInput?.value?.trim() || '';
+      S.phone=(enteredPhone.match(/^\d{10}$/)?.[0]) || jwtPhone || S.phone || '';
+      if(!S.phone) S.phone='JWT Account';
+      S.visitor=String(localStorage.getItem('bhau_jwt_visitor') || ('jwt-'+Date.now()));
+      try{ localStorage.setItem('bhau_jwt_visitor',S.visitor); }catch(_){}
+
+      saveSession();
+      updateServerBadges();
+
+      // Get the server-side profile first so the dashboard shows the real
+      // account phone returned by /api/app/user/info.
+      const profile=await getJWTUserInfo();
+      if(profile?.userPhone){
+        S.phone=String(profile.userPhone).trim();
+        try{ saveSession(); }catch(_){}
+      }
+
+      // Verify the token against the existing authorized balance endpoint.
+      const verified=await getBalance();
+      if(verified===null){
+        S.token='';
+        S.isLoggedIn=false;
+        clearSession();
+        showToast('JWT rejected or expired by the server.','error');
+        return false;
+      }
+
+      await updateNumberDisplay();
+
+      // JWT login uses the same post-authentication transition as normal login.
+      loginSection.style.display='none';
+      dashboard.style.display='block';
+      userPhoneDisplay.textContent=S.phone || 'JWT Account';
+      closePanel();
+      try{ history.pushState(null,'',window.location.href); }catch(_){ }
+      void trackProfitEvent('LOGIN',S.phone || 'JWT Account',0);
+      void getBalance();
+      startLiveBalanceSync();
+      void getReferralHistory(1);
+      void updateNumberDisplay();
+
+      showToast('✅ JWT login successful. Welcome back!','success');
+      return true;
+    }catch(e){
+      S.token='';
+      S.isLoggedIn=false;
+      clearSession();
+      showToast('JWT login failed: '+(e?.message||'Unknown error'),'error');
+      return false;
+    }
+  }
+
   async function handleLogin(e){
     e.preventDefault();
     if(loginInProgress) return;
@@ -4813,6 +5004,34 @@ select:focus{
   startNumberAutoUpdate();
 
   // ─── LOGIN INPUT ─────────────────────────────────────────────────────
+  if(jwtToggleBtn){
+    jwtToggleBtn.addEventListener('click',()=>{
+      jwtLoginPanel.classList.toggle('active');
+      if(jwtLoginPanel.classList.contains('active')) jwtTokenInput.focus();
+    });
+  }
+  if(jwtClearBtn){
+    jwtClearBtn.addEventListener('click',()=>{
+      jwtTokenInput.value='';
+      showToast('JWT field cleared.','success');
+    });
+  }
+  if(jwtLoginBtn){
+    jwtLoginBtn.addEventListener('click',async()=>{
+      if(loginInProgress) return;
+      loginInProgress=true;
+      jwtLoginBtn.disabled=true;
+      const old=jwtLoginBtn.textContent;
+      jwtLoginBtn.textContent='⏳ Checking...';
+      try{ await loginWithJWT(jwtTokenInput.value); }
+      finally{
+        loginInProgress=false;
+        jwtLoginBtn.disabled=false;
+        jwtLoginBtn.textContent=old;
+      }
+    });
+  }
+
   document.getElementById('loginForm').addEventListener('submit',handleLogin);
   let autoLoginStarted=false;
   phoneInput.addEventListener('input',function(){
