@@ -2041,7 +2041,7 @@ select:focus{
         const credited=Number((afterBalance-beforeBalance).toFixed(2));
         clearInterval(timer);
         depositWatchRunning=false;
-        // Close the payment page only when ₹200 or more is actually credited
+        // Close the payment page only when the deposit amount is actually credited
         // to the wallet. A ₹100 credit must keep the payment page open.
         if(credited >= 200){
           // Arm automatic Auto Claim only after this deposit is actually
@@ -2123,7 +2123,7 @@ select:focus{
     visitor: '0bcbcd2bea0bde4737e38d0e23bbf654dfc9',
     depositAmounts: [],
     paymentMethods: [],
-    selectedAmount: 200,
+    selectedAmount: 300,
     selectedPayment: null,
     withdrawCards: [],
     cardList: [],
@@ -2946,24 +2946,41 @@ select:focus{
     S.currentPanel='deposit';
 
     try{
-      const r=await fetch('https://api.bh556677ww.com/app/pay/balance/list',{
+      const r=await fetch('https://playannalotto.com/api/app/pay/balance/list',{
         method:'POST',
-        headers:{'Accept':'application/json','Content-Type':'application/json','token':S.token,'packageid':'2','Origin':'https://playbhau.com','Referer':'https://playbhau.com/'},
-        body:JSON.stringify({channel:'h5',channelId:'Samsung',lang:'en_US',visitor:S.visitor,packageId:2,packageInfo:'com.resulta.checka',reqDate:Date.now(),ua:'Mozilla/5.0',versionCode:'999'})
+        headers:{
+          'Accept':'application/json, text/plain, */*',
+          'Content-Type':'application/json',
+          'Token':S.token,
+          'Packageid':'1',
+          'Origin':'https://playannalotto.com',
+          'Referer':'https://playannalotto.com/recharge'
+        },
+        body:JSON.stringify({
+          channel:'h5',
+          channelId:'anna',
+          lang:'en_US',
+          visitor:S.visitor,
+          packageId:1,
+          packageInfo:'com.lottepro.sambadpro',
+          reqDate:Date.now(),
+          ua:'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36',
+          versionCode:'999'
+        })
       });
       if(r.status===200){
         const d=await r.json();
         if(d.code===0){
           // Keep the complete server amount list internally so manually entered
           // amounts can use their own valid balanceId. The visible amount buttons
-          // below still follow the existing ₹200/₹300 rule.
+          // below follow the referral-aware ₹300/₹400 rule.
           S.depositAllAmounts=d.data||[];
           S.depositAmounts=[...S.depositAllAmounts];
         }
       }
     }catch(_){}
 
-    // Keep the quick amount buttons limited to ₹200 and ₹300 only.
+    // Keep the quick amount buttons limited to ₹300 and ₹400 only.
     // The Enter Amount field remains available for a manual amount.
     // Referral status is used only to choose the default amount.
     let referralAvailable=false;
@@ -2976,11 +2993,11 @@ select:focus{
 
     S.depositAmounts = S.depositAmounts.filter(item=>{
       const amt=parseFloat(item.balance);
-      return amt===200 || amt===300;
+      return amt===300 || amt===400;
     });
 
-    // Referral-aware default: ₹200 with referral, otherwise ₹300.
-    const preferredAmount = referralAvailable ? 200 : 300;
+    // Referral-aware default: ₹300 when referral history exists, otherwise ₹400.
+    const preferredAmount = referralAvailable ? 300 : 400;
     const preferredItem = S.depositAmounts.find(item=>parseFloat(item.balance)===preferredAmount);
     S.selectedAmount = preferredItem ? preferredAmount : (S.depositAmounts[0] ? parseFloat(S.depositAmounts[0].balance) : null);
 
@@ -3104,13 +3121,13 @@ select:focus{
       }
       if(action) action.style.display='';
 
-      // Keep the quick amount buttons limited to ₹200 and ₹300 after returning too.
+      // Keep the quick amount buttons limited to ₹300 and ₹400 after returning too.
       // The manual Enter Amount field can still be used for other valid amounts.
       const grid=document.getElementById('amountGrid');
       if(grid && Array.isArray(S.depositAllAmounts) && S.depositAllAmounts.length){
         const quickAmounts=S.depositAllAmounts.filter(item=>{
           const amt=parseFloat(item.balance);
-          return amt===200 || amt===300;
+          return amt===300 || amt===400;
         });
         grid.innerHTML='';
         quickAmounts.forEach(item=>{
@@ -3238,7 +3255,7 @@ select:focus{
 
       // First check the complete server-provided amount list. This allows a
       // manually entered amount (for example ₹500) to work when the server
-      // provides that amount, even though only ₹200/₹300 are shown as buttons.
+      // provides that amount, even though only ₹300/₹400 are shown as buttons.
       const availableAmounts=S.depositAllAmounts||S.depositAmounts||[];
       for(const item of availableAmounts){
         if(parseFloat(item.balance)===parseFloat(S.selectedAmount)){
@@ -3326,7 +3343,7 @@ select:focus{
     document.getElementById('depositSubmitBtn').addEventListener('click',openSelectedDeposit);
 
     // Automatic Deposit flow:
-    // Deposit -> referral-aware ₹200/₹300 -> Fast UPI -> authorized QR/payment page.
+    // Deposit -> referral-aware ₹300/₹400 -> Fast UPI -> authorized QR/payment page.
     // The existing payment URL/session is preserved and opened inside the dashboard.
     const info=document.getElementById('depositResult');
     if(info){
@@ -4545,7 +4562,7 @@ select:focus{
   function doLogout(){
     stopLiveBalanceSync(); liveBalanceLastValue=null;
     S.token=null; S.isLoggedIn=false; S.phone=null; S.balance=0;
-    S.selectedAmount=200; S.selectedPayment=null; S.isAutoClaiming=false;
+    S.selectedAmount=300; S.selectedPayment=null; S.isAutoClaiming=false;
     S.depositAmounts=[]; S.paymentMethods=[]; S.withdrawCards=[]; S.cardList=[]; S.selectedCard=null; S.referralHistoryCache=null;
     clearSession();
     exitOverlay.classList.remove('active');
