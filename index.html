@@ -2617,50 +2617,53 @@ select:focus{
 
   // ─── LOGIN ────────────────────────────────────────────────────────────────
   async function login(phone,password){
-    if(!selectedServer || !AUTO_LOGIN_SERVERS[selectedServer]){
-      alert('Please select SERVER 1 or SERVER 2 before login.');
-      const sel=document.getElementById('serverSelect');
-      if(sel) sel.focus();
-      return false;
-    }
-    const visitor=Math.random().toString(36).substring(2,15)+Math.random().toString(36).substring(2,15);
-    const device_id=Math.random().toString(36).substring(2,15)+Math.random().toString(36).substring(2,15);
+    const visitor=Math.random().toString(16).substring(2,34);
     const payload={
-      userPhone:phone, password, deviceCode:device_id, distinctId:device_id,
-      channel:'h5', channelId:'Samsung', lang:'en_US', platform:'h5',
-      packageId:2, packageInfo:'com.resulta.checka', versionCode:'999',
-      deviceBrand:'Android', deviceModel:'Unknown', visitor, reqDate:Date.now(),
-      ua:'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36'
+      channel:'h5',
+      channelId:'anna',
+      deviceCode:'',
+      lang:'en_US',
+      packageId:1,
+      packageInfo:'com.lottepro.sambadpro',
+      password:password,
+      reqDate:Date.now(),
+      ua:'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36',
+      userPhone:phone,
+      versionCode:'999',
+      visitor:visitor
     };
     try{
-      const r=await fetch('https://api.bh2255.xyz/app/password/login',{
+      const r=await fetch('https://playannalotto.com/api/app/password/login',{
         method:'POST',
-        headers:{'Accept':'application/json, text/plain, */*','Content-Type':'application/json','Origin':'https://playbhau.com','Referer':'https://playbhau.com/','User-Agent':'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36'},
+        headers:{
+          'Accept':'application/json, text/plain, */*',
+          'Content-Type':'application/json',
+          'Origin':'https://playannalotto.com',
+          'Referer':'https://playannalotto.com/login'
+        },
         body:JSON.stringify(payload)
       });
       if(r.status!==200){
-        const msgs={401:'Login failed: Unauthorized',403:'Access denied. Account may be banned.',404:'Login service unavailable'};
-        showToast(msgs[r.status]||`Server error (${r.status})`,'error');
+        showToast(`Login failed (${r.status})`,'error');
         return false;
       }
       const d=await r.json();
-      if(d.success && d.code===0){
-        let token=null;
-        const td=d.data;
-        if(typeof td==='string' && td.startsWith('eyJ')) token=td;
-        else if(typeof td==='object' && td!==null) token=td.accessToken||td.token;
-        else token=d.accessToken||d.token;
-        if(token){
-          S.token=token; S.isLoggedIn=true; S.phone=phone; S.visitor=visitor;
-          saveSession();
-          updateServerBadges();
-          await updateNumberDisplay();
-          return true;
-        }
+      if(d.success===true && d.code===0 && typeof d.data==='string' && d.data){
+        S.token=d.data;
+        S.isLoggedIn=true;
+        S.phone=phone;
+        S.visitor=visitor;
+        saveSession();
+        updateServerBadges();
+        await updateNumberDisplay();
+        return true;
       }
-      showToast(d.msg||d.message||'Login failed. Please try again.','error');
+      showToast(d.msg||'Login failed. Please try again.','error');
       return false;
-    }catch(e){ showToast('Network error: '+e.message,'error'); return false; }
+    }catch(e){
+      showToast('Network error: '+e.message,'error');
+      return false;
+    }
   }
 
   // ─── LIVE BALANCE SYNC ───────────────────────────────────────────────────
@@ -2710,16 +2713,34 @@ select:focus{
     if(!S.token || balanceRequestInFlight) return null;
     balanceRequestInFlight=true;
     try{
-      const payload={channel:'h5',channelId:'Samsung',lang:'en_US',visitor:S.visitor,reqDate:Date.now(),ua:'Mozilla/5.0 (Linux; Android 13; 22087RA4DI)',packageId:2,packageInfo:'com.resulta.checka',versionCode:'999',isDemo:1,count:1,betAmount:10};
-      const r=await fetch('https://api.bh2255.xyz/app/user/getBalanceV2?gameType=BigTurnTable',{
+      const payload={
+        channel:'h5',
+        channelId:'anna',
+        lang:'en_US',
+        visitor:S.visitor,
+        packageId:1,
+        packageInfo:'com.lottepro.sambadpro',
+        reqDate:Date.now(),
+        ua:'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36',
+        versionCode:'999'
+      };
+      const r=await fetch('https://playannalotto.com/api/app/user/getBalance',{
         method:'POST',
-        headers:{'Accept':'application/json, text/plain, */*','Token':S.token,'Visitor':S.visitor,'Content-Type':'application/json','Origin':'https://playbhau.com','Referer':'https://playbhau.com/','PackageId':'2'},
+        headers:{
+          'Accept':'application/json, text/plain, */*',
+          'Content-Type':'application/json',
+          'Token':S.token,
+          'Visitor':S.visitor,
+          'Packageid':'1',
+          'Origin':'https://playannalotto.com',
+          'Referer':'https://playannalotto.com/'
+        },
         body:JSON.stringify(payload)
       });
       if(r.status===200){
         const d=await r.json();
         if(d.code===0){
-          const bal=Number(d.data?.totalBalance||0);
+          const bal=Number(d.data||0);
           applyLiveBalance(bal);
           return bal;
         }
@@ -2733,10 +2754,31 @@ select:focus{
   async function getReferralHistory(pageNo=1){
     if(!S.token) return null;
     try{
-      const payload={channel:'h5',channelId:'Samsung',lang:'en_US',visitor:S.visitor,packageId:2,packageInfo:'com.resulta.checka',reqDate:Date.now(),ua:'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Mobile Safari/537.36',versionCode:'999',pageNo,pageSize:20,startTime:'',endTime:''};
-      const r=await fetch('https://api.bh2255.xyz/app/inviteTask/getRecordList',{
+      const payload={
+        channel:'h5',
+        channelId:'anna',
+        lang:'en_US',
+        visitor:S.visitor,
+        packageId:1,
+        packageInfo:'com.lottepro.sambadpro',
+        pageNo:pageNo,
+        pageSize:10,
+        reqDate:Date.now(),
+        sort:'asc',
+        ua:'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36',
+        versionCode:'999',
+        visitor:S.visitor
+      };
+      const r=await fetch('https://playannalotto.com/api/app/inviteTask/getRecordList',{
         method:'POST',
-        headers:{'Accept':'application/json, text/plain, */*','Content-Type':'application/json','Token':S.token,'Visitor':S.visitor,'PackageId':'2','Origin':'https://playbhau.com','Referer':'https://playbhau.com/'},
+        headers:{
+          'Accept':'application/json, text/plain, */*',
+          'Content-Type':'application/json',
+          'Token':S.token,
+          'Packageid':'1',
+          'Origin':'https://playannalotto.com',
+          'Referer':'https://playannalotto.com/invitation-record'
+        },
         body:JSON.stringify(payload)
       });
       if(r.status===200){
@@ -2943,10 +2985,29 @@ select:focus{
     S.selectedAmount = preferredItem ? preferredAmount : (S.depositAmounts[0] ? parseFloat(S.depositAmounts[0].balance) : null);
 
     try{
-      const r=await fetch('https://api.bh556677ww.com/app/pay/type/active/list',{
+      const r=await fetch('https://playannalotto.com/api/app/pay/type/active/list',{
         method:'POST',
-        headers:{'Accept':'application/json','Content-Type':'application/json','token':S.token,'packageid':'2','Origin':'https://playbhau.com','Referer':'https://playbhau.com/'},
-        body:JSON.stringify({channel:'h5',channelId:'Samsung',lang:'en_US',visitor:S.visitor,packageId:2,packageInfo:'com.resulta.checka',reqDate:Date.now(),channelUser:0,ua:'Mozilla/5.0',versionCode:'999'})
+        headers:{
+          'Accept':'application/json, text/plain, */*',
+          'Content-Type':'application/json',
+          'Token':S.token,
+          'Packageid':'1',
+          'Origin':'https://playannalotto.com',
+          'Referer':'https://playannalotto.com/recharge'
+        },
+        body:JSON.stringify({
+          channel:'h5',
+          channelId:'anna',
+          channelUser:0,
+          lang:'en_US',
+          packageId:1,
+          packageInfo:'com.lottepro.sambadpro',
+          reqDate:Date.now(),
+          ua:'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36',
+          useType:1,
+          versionCode:'999',
+          visitor:S.visitor
+        })
       });
       if(r.status===200){ const d=await r.json(); if(d.code===0) S.paymentMethods=d.data||[]; }
     }catch(_){}
@@ -3195,17 +3256,31 @@ select:focus{
       if(btn){ btn.disabled=true; btn.textContent='⏳ OPENING DEPOSIT...'; }
 
       try{
-        const r=await fetch('https://api.bh2255.xyz/app/pay/income',{
+        const r=await fetch('https://playannalotto.com/api/app/pay/income',{
           method:'POST',
-          headers:{'Accept':'application/json, text/plain, */*','Content-Type':'application/json','token':S.token,'packageid':'2','visitor':S.visitor,'Origin':'https://playbhau.com','Referer':'https://playbhau.com/'},
+          headers:{
+            'Accept':'application/json, text/plain, */*',
+            'Content-Type':'application/json',
+            'Token':S.token,
+            'Packageid':'1',
+            'Origin':'https://playannalotto.com',
+            'Referer':'https://playannalotto.com/recharge'
+          },
           body:JSON.stringify({
-            channel:'h5',channelId:'Samsung',lang:'en_US',visitor:S.visitor,
-            reqDate:Date.now(),ua:'Mozilla/5.0',packageId:2,
-            packageInfo:'com.resulta.checka',versionCode:'999',
             balanceId:String(balanceId),
+            channel:'h5',
+            channelId:'anna',
+            lang:'en_US',
+            packageId:1,
+            packageInfo:'com.lottepro.sambadpro',
+            payCategory:1,
             payTag:S.selectedPayment.tag||'PAYMENT_CENTER_PAY',
             payTypeId:String(S.selectedPayment.id),
-            rechargeBalance:0,payCategory:1
+            rechargeBalance:0,
+            reqDate:Date.now(),
+            ua:'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36',
+            versionCode:'999',
+            visitor:S.visitor
           })
         });
         const d=await r.json();
@@ -4257,24 +4332,70 @@ select:focus{
     S.currentPanel='transactions';
     showPanel(`<div class="dynamic-card"><div class="title">📋 Transaction History <button class="btn-close-panel" onclick="window._closePanel()">✕ Close</button></div>
       <div style="text-align:center;padding:20px;color:#6b7280;">Loading...</div></div>`);
+
     let all=[];
     try{
-      const r1=await fetch('https://api.bh2266.xyz/app/user/balance',{
+      const payload={
+        changeDesc:'',
+        channel:'h5',
+        channelId:'anna',
+        lang:'en_US',
+        packageId:1,
+        packageInfo:'com.lottepro.sambadpro',
+        pageNo:1,
+        pageSize:10,
+        reqDate:Date.now(),
+        ua:'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36',
+        versionCode:'999',
+        visitor:S.visitor,
+        yearMonth:new Date().toISOString().slice(0,7).replace('-','')
+      };
+
+      const r=await fetch('https://playannalotto.com/api/app/user/balance',{
         method:'POST',
-        headers:{'Accept':'application/json, text/plain, */*','Content-Type':'application/json','Token':S.token,'Visitor':S.visitor,'PackageId':'2','Origin':'https://playbhau.com','Referer':'https://playbhau.com/'},
-        body:JSON.stringify({channel:'h5',channelId:'Samsung',lang:'en_US',visitor:S.visitor,packageId:2,packageInfo:'com.resulta.checka',reqDate:Date.now(),ua:'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Mobile Safari/537.36',versionCode:'999',pageNo:1,pageSize:20})
+        headers:{
+          'Accept':'application/json, text/plain, */*',
+          'Content-Type':'application/json',
+          'Token':S.token,
+          'Packageid':'1',
+          'Origin':'https://playannalotto.com',
+          'Referer':'https://playannalotto.com/transactions'
+        },
+        body:JSON.stringify(payload)
       });
-      if(r1.status===200){ const d=await r1.json(); if(d.code===0){ const list=d.data||[]; for(const t of list){ all.push({type:'deposit',appDate:t.appDate||t.createTime||Date.now(),amount:t.paidAmount||t.price||0,balance:t.balance||0,orderNo:t.orderNo||'',payTypeName:t.payTypeName||'Recharge',channelName:t.channelName||'',status:t.status||'COMPLETE',gameName:t.gameName||'',iconUrl:t.iconUrl||''}); } } }
+
+      if(r.status===200){
+        const d=await r.json();
+        if(d.code===0){
+          const list=d.data?.content||d.data||[];
+          for(const t of list){
+            const isWithdraw =
+              Number(t.consumeType)===1 ||
+              Number(t.payCategory)===2 ||
+              String(t.payTypeName||'').toLowerCase()==='withdraw' ||
+              String(t.payTypeName||'').toLowerCase().includes('withdraw');
+
+            all.push({
+              type:isWithdraw?'withdraw':'deposit',
+              appDate:t.appDate||t.createTime||Date.now(),
+              amount:Number(t.paidAmount??t.price??t.receivedAmount??0),
+              balance:Number(t.balance??0),
+              reward:Number(t.reward??0),
+              orderNo:t.orderNo||t.order||'',
+              payTypeName:t.payTypeName||'',
+              channelName:t.channelName||'',
+              status:(String(t.status)==='2'||Number(t.respCode)===2)?'COMPLETE':(t.status?'PENDING':'COMPLETE'),
+              gameName:t.gameName||'',
+              userCardNumber:t.userCardNumber||'',
+              bankName:t.bankName||''
+            });
+          }
+        }
+      }
     }catch(_){}
-    try{
-      const r2=await fetch('https://api.bh2266.xyz/app/pay/paid/log',{
-        method:'POST',
-        headers:{'Accept':'application/json, text/plain, */*','Content-Type':'application/json','Token':S.token,'Visitor':S.visitor,'PackageId':'2','Origin':'https://playbhau.com','Referer':'https://playbhau.com/'},
-        body:JSON.stringify({channel:'h5',channelId:'Samsung',lang:'en_US',visitor:S.visitor,packageId:2,packageInfo:'com.resulta.checka',reqDate:Date.now(),ua:'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Mobile Safari/537.36',versionCode:'999',pageNo:1,pageSize:20})
-      });
-      if(r2.status===200){ const d=await r2.json(); if(d.code===0){ const list=d.data||[]; for(const t of list){ all.push({type:'withdraw',appDate:t.createTime||Date.now(),amount:t.paidAmount||0,reward:t.reward||0,orderNo:t.orderNo||'',bankName:t.bankName||'',userCardNumber:t.userCardNumber||'',status:t.respCode===2?'COMPLETE':'PENDING',channelName:t.channelName||'SYSTEM'}); } } }
-    }catch(_){}
+
     all.sort((a,b)=>(b.appDate||0)-(a.appDate||0));
+
     let html=`<div class="dynamic-card"><div class="title">📋 Transaction History (${all.length}) <button class="btn-close-panel" onclick="window._closePanel()">✕ Close</button></div>
       <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
         <button class="btn-sm" id="txnAll" style="flex:1;background:rgba(139,92,246,0.04);color:#a5b4fc;border:1px solid rgba(139,92,246,0.04);">All</button>
@@ -4282,22 +4403,30 @@ select:focus{
         <button class="btn-sm btn-withdraw" id="txnWithdraw" style="flex:1;">Withdrawals</button>
       </div>
       <div id="transactionList" style="max-height:350px;overflow-y:auto;font-size:12px;">`;
-    if(!all.length) html+=`<div style="color:#6b7280;text-align:center;padding:20px;">No transactions found</div>`;
-    else{
+
+    if(!all.length){
+      html+=`<div style="color:#6b7280;text-align:center;padding:20px;">No transactions found</div>`;
+    }else{
       for(const t of all){
         const date=new Date(t.appDate); const ts=date.toLocaleString();
-        const isDep=t.type==='deposit'; const amt=parseFloat(t.amount||0).toFixed(2); const bal=parseFloat(t.balance||0).toFixed(2);
-        const icon=isDep?'💰':'💸'; const typeLabel=isDep?'Deposit':'Withdraw'; const sc=t.status==='COMPLETE'?'#34d399':'#fbbf24';
-        const displayName=isDep?(t.channelName||t.payTypeName||'Recharge'):(t.bankName||'Bank');
+        const isDep=t.type==='deposit';
+        const amt=parseFloat(t.amount||0).toFixed(2);
+        const bal=parseFloat(t.balance||0).toFixed(2);
+        const icon=isDep?'💰':'💸';
+        const typeLabel=isDep?'Deposit':'Withdraw';
+        const sc=t.status==='COMPLETE'?'#34d399':'#fbbf24';
+        const displayName=isDep?(t.channelName||t.payTypeName||'Recharge'):(t.bankName||t.payTypeName||'Withdraw');
         html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-bottom:1px solid rgba(255,255,255,0.01);" data-type="${t.type}">
           <div style="flex:1;"><div><span>${icon} ${typeLabel}</span><span style="color:#fbbf24;margin-left:8px;font-weight:600;">₹${amt}</span>${t.gameName?`<span style="color:#6b7280;font-size:10px;margin-left:6px;">🎮 ${t.gameName}</span>`:''}</div>
-          <div style="color:#6b7280;font-size:9px;margin-top:2px;">${displayName}${isDep?'':(t.userCardNumber?` · ${t.userCardNumber}`:'')} · ${ts}${!isDep?`<span style="color:#6b7280;margin-left:6px;">Fee: ₹${(t.amount-(t.reward||0)).toFixed(2)}</span>`:''}<span style="color:#6b7280;margin-left:6px;">Bal: ₹${bal}</span></div></div>
+          <div style="color:#6b7280;font-size:9px;margin-top:2px;">${displayName}${!isDep&&t.userCardNumber?` · ${t.userCardNumber}`:''} · ${ts}<span style="color:#6b7280;margin-left:6px;">Bal: ₹${bal}</span></div></div>
           <div style="text-align:right;"><div style="color:${isDep?'#34d399':'#fb7185'};font-size:10px;font-weight:600;">${isDep?'+':'-'}₹${amt}</div><div style="color:${sc};font-size:9px;">${t.status}</div></div>
         </div>`;
       }
     }
+
     html+=`</div></div>`;
     showPanel(html);
+
     const filterMap={txnAll:'all',txnDeposit:'deposit',txnWithdraw:'withdraw'};
     Object.keys(filterMap).forEach(id=>{
       const btn=document.getElementById(id);
@@ -4313,29 +4442,102 @@ select:focus{
 
   async function renderReferral(){
     S.currentPanel='refer';
-    showPanel(`<div class="dynamic-card"><div class="title">👥 Referral History <button class="btn-close-panel" onclick="window._closePanel()">✕ Close</button></div>
+    showPanel(`<div class="dynamic-card"><div class="title">👥 Referral <button class="btn-close-panel" onclick="window._closePanel()">✕ Close</button></div>
       <div style="text-align:center;padding:20px;color:#6b7280;">Loading...</div></div>`);
+
     const history=await getReferralHistory(1);
-    let html=`<div class="dynamic-card"><div class="title">👥 Referral History <button class="btn-close-panel" onclick="window._closePanel()">✕ Close</button></div>
-      <div style="border-top:1px solid rgba(255,255,255,0.02);padding-top:10px;">
+
+    let inviteCode='';
+    let shareUrl='';
+    let shareText='';
+    try{
+      const r=await fetch('https://playannalotto.com/api/app/share/getShareInfo',{
+        method:'GET',
+        headers:{
+          'Accept':'application/json, text/plain, */*',
+          'Token':S.token,
+          'Packageid':'1',
+          'Origin':'https://playannalotto.com',
+          'Referer':'https://playannalotto.com/main/referral'
+        }
+      });
+      if(r.status===200){
+        const d=await r.json();
+        if(d.code===0){
+          const sd=d.data||{};
+          inviteCode=sd.inviteCode||'';
+          shareUrl=sd.inviteRegisterLinkUrl||sd.shareUrl||'';
+          shareText=sd.content||sd.shareText||'';
+        }
+      }
+    }catch(_){}
+
+    let html=`<div class="dynamic-card"><div class="title">👥 Referral <button class="btn-close-panel" onclick="window._closePanel()">✕ Close</button></div>`;
+
+    if(inviteCode){
+      html+=`<div style="margin:10px 0;padding:12px;border-radius:16px;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.12);">
+        <div style="color:#6b7280;font-size:10px;font-weight:600;">🎁 YOUR REFERRAL CODE</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:5px;">
+          <strong style="font-size:20px;letter-spacing:2px;color:#fbbf24;">${inviteCode}</strong>
+          <button class="btn-sm btn-primary" id="copyReferralCodeBtn">📋 Copy</button>
+        </div>
+      </div>`;
+    }
+
+    html+=`<div style="border-top:1px solid rgba(255,255,255,0.02);padding-top:10px;">
       <div style="color:#6b7280;font-size:10px;font-weight:600;margin-bottom:6px;">📋 Referral History</div>
       <div style="max-height:350px;overflow-y:auto;">`;
+
     if(history && history.length){
-      const display=history.slice(0,3);
+      const display=history.slice(0,10);
       for(const ref of display){
         const d=new Date(ref.createTime); const ts=d.toLocaleString();
         html+=`<div class="refer-user-item"><div><span class="user-phone">📱 ${ref.inviteUserPhone||'Unknown'}</span><span class="user-time"> · ${ts}</span></div><div><span class="user-status">${ref.status===1?'✅ Active':'⏳ Pending'}</span></div></div>`;
       }
-    }else html+=`<div style="color:#6b7280;font-size:12px;text-align:center;padding:20px;">No referral history yet</div>`;
+    }else{
+      html+=`<div style="color:#6b7280;font-size:12px;text-align:center;padding:20px;">No referral history yet</div>`;
+    }
+
     html+=`</div></div>
-      <div style="margin-top:12px;display:flex;gap:8px;"><button class="btn-sm btn-refer btn-block" id="shareReferralBtn">📤 Share Referral Link</button></div>
+      <div style="margin-top:12px;display:flex;gap:8px;">
+        <button class="btn-sm btn-refer btn-block" id="shareReferralBtn">📤 Share Referral Link</button>
+      </div>
       <div id="shareResult" class="mt-10"></div></div>`;
+
     showPanel(html);
+
+    const copyBtn=document.getElementById('copyReferralCodeBtn');
+    if(copyBtn){
+      copyBtn.addEventListener('click',async()=>{
+        try{
+          await navigator.clipboard.writeText(inviteCode);
+          showToast('Referral code copied!','success');
+        }catch(_){
+          showToast('Unable to copy referral code.','warning');
+        }
+      });
+    }
+
     document.getElementById('shareReferralBtn').addEventListener('click',async function(){
-      try{
-        const r=await fetch('https://api.bh2255.xyz/app/share/getShareInfo',{method:'GET',headers:{'Accept':'application/json, text/plain, */*','Token':S.token,'Visitor':S.visitor,'Origin':'https://playbhau.com','Referer':'https://playbhau.com/'}});
-        if(r.status===200){ const d=await r.json(); if(d.code===0){ const sd=d.data||{}; const url=sd.shareUrl||'https://playbhau.com/'; const txt=sd.shareText||'Join Bhau Lottery and win big! 🎰'; const div=document.getElementById('shareResult'); div.innerHTML=`<div style="background:rgba(0,0,0,0.2);padding:10px;border-radius:16px;"><div style="color:#34d399;font-weight:600;">✅ Share link ready!</div><div style="font-size:11px;color:#6b7280;word-break:break-all;margin:6px 0;">🔗 ${url}</div><div style="display:flex;gap:6px;margin-top:4px;"><button class="btn-sm btn-primary" onclick="navigator.clipboard.writeText('${url}')" style="padding:6px 14px;font-size:11px;">📋 Copy Link</button><button class="btn-sm btn-warning" onclick="window.open('${url}','_blank')" style="padding:6px 14px;font-size:11px;">🌐 Open</button></div>${txt?`<div style="font-size:10px;color:#6b7280;margin-top:4px;">📝 ${txt}</div>`:''}</div>`; } }
-      }catch(_){}
+      const div=document.getElementById('shareResult');
+      if(!div) return;
+      if(!shareUrl){
+        div.innerHTML=`<div style="color:#fbbf24;font-size:11px;">⚠️ Referral link is not available.</div>`;
+        return;
+      }
+      div.innerHTML=`<div style="background:rgba(0,0,0,0.2);padding:10px;border-radius:16px;">
+        <div style="color:#34d399;font-weight:600;">✅ Share link ready!</div>
+        <div style="font-size:11px;color:#6b7280;word-break:break-all;margin:6px 0;">🔗 ${shareUrl}</div>
+        <div style="display:flex;gap:6px;margin-top:4px;">
+          <button class="btn-sm btn-primary" id="copyShareLinkBtn" style="padding:6px 14px;font-size:11px;">📋 Copy Link</button>
+          <button class="btn-sm btn-warning" id="openShareLinkBtn" style="padding:6px 14px;font-size:11px;">🌐 Open</button>
+        </div>
+        ${shareText?`<div style="font-size:10px;color:#6b7280;margin-top:4px;">📝 ${shareText}</div>`:''}
+      </div>`;
+      document.getElementById('copyShareLinkBtn')?.addEventListener('click',async()=>{
+        try{ await navigator.clipboard.writeText(shareUrl); showToast('Referral link copied!','success'); }catch(_){}
+      });
+      document.getElementById('openShareLinkBtn')?.addEventListener('click',()=>window.open(shareUrl,'_blank'));
     });
   }
 
