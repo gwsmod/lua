@@ -4235,8 +4235,7 @@ select:focus{
   }
 
   async function openLimboGame(){
-    // Limbo is also a game, so make its panel fullscreen from the dashboard click.
-    enterAllGamesFullscreen(document.getElementById('dynamicContent'));
+    // Limbo opens normally; automatic fullscreen is disabled.
     try{
       const r=await fetch('https://playannalotto.com/api/iGaming/common/getGameStart?id=56986&otherGame=true',{
         method:'GET',
