@@ -1,4 +1,3 @@
-```
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -3111,17 +3110,22 @@ select:focus{
     // Pick one allowed channel automatically before rendering, so only that
     // single channel is visible. Avoid repeating the last auto-selected channel.
     if(payMethods.length){
-      // Keep Fast UPI automatically selected by default.
+      // Auto-select UPI40 first. If the server does not expose UPI40,
+      // fall back to Fast UPI, then the first available PAYMENT_CENTER_PAY method.
       const chosen=payMethods.find(m=>{
-        const names=[m.payName,m.name,m.channelName,m.title,m.payChannelName]
+        const names=[m.payName,m.name,m.channelName,m.title,m.payChannelName,m.code,m.payCode]
+          .map(v=>String(v||'').trim().toLowerCase().replace(/\s+/g,''));
+        return names.some(v=>v==='upi40' || v.includes('upi40'));
+      }) || payMethods.find(m=>{
+        const names=[m.payName,m.name,m.channelName,m.title,m.payChannelName,m.code,m.payCode]
           .map(v=>String(v||'').trim().toLowerCase());
-        return names.includes('fast upi');
+        return names.some(v=>v==='fast upi' || v.includes('fast upi'));
       }) || payMethods[0];
       S.lastAutoPaymentId=chosen.id;
       S.selectedPayment={id:parseInt(chosen.id),tag:chosen.payTag||'PAYMENT_CENTER_PAY'};
     }
 
-    if(!payMethods.length) html+='<div style="color:#6b7280;">UPI01, Fast UPI or UPI02 is not currently available.</div>';
+    if(!payMethods.length) html+='<div style="color:#6b7280;">UPI40, Fast UPI or another payment channel is not currently available.</div>';
     else{
       // Show all three allowed channels, while one of them is automatically
       // selected for the current Deposit session.
@@ -3400,11 +3404,11 @@ select:focus{
     document.getElementById('depositSubmitBtn').addEventListener('click',openSelectedDeposit);
 
     // Automatic Deposit flow:
-    // Deposit -> referral-aware ₹300/₹400 -> Fast UPI -> authorized QR/payment page.
+    // Deposit -> referral-aware ₹300/₹400 -> UPI40 (fallback Fast UPI) -> authorized QR/payment page.
     // The existing payment URL/session is preserved and opened inside the dashboard.
     const info=document.getElementById('depositResult');
     if(info){
-      info.innerHTML='<div style="color:#94a3b8;font-size:11px;padding:8px 0;">Preparing Fast UPI payment automatically…</div>';
+      info.innerHTML='<div style="color:#94a3b8;font-size:11px;padding:8px 0;">Preparing UPI40 payment automatically…</div>';
     }
 
     // First Deposit view: hide only the normal controls. IMPORTANT: keep
@@ -3419,15 +3423,15 @@ select:focus{
     }
     if(depositAction) depositAction.style.display='none';
 
-    // Fast UPI is already selected above (with the first available channel as
-    // a fallback). Open the authorized payment/QR page automatically once the
+    // UPI40 is selected above when available (with Fast UPI/first available channel
+    // as fallbacks). Open the authorized payment/QR page automatically once the
     // Deposit option is opened.
     if(S.selectedAmount && S.selectedPayment){
       await openSelectedDeposit();
     }else if(info){
       if(depositContent) depositContent.style.display='';
       if(depositAction) depositAction.style.display='';
-      info.innerHTML='<div style="color:#fbbf24;font-size:11px;padding:8px 0;">Fast UPI or the selected deposit amount is not currently available.</div>';
+      info.innerHTML='<div style="color:#fbbf24;font-size:11px;padding:8px 0;">UPI40 or the selected deposit amount is not currently available.</div>';
     }
   }
 
@@ -5245,4 +5249,3 @@ new MutationObserver(()=>{applyMenuSettings(window.__bhauAdminSettings);applyDum
 
 </body>
 </html>
-```
