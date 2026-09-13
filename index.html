@@ -3438,16 +3438,90 @@ select:focus{
     }
     if(depositAction) depositAction.style.display='none';
 
-    // UPI40 is selected above when available (with Fast UPI/first available channel
-    // as fallbacks). Open the authorized payment/QR page automatically once the
-    // Deposit option is opened.
-    if(S.selectedAmount && S.selectedPayment && S.selectedBalanceId){
-      await openSelectedDeposit();
-    }else if(info){
-      if(depositContent) depositContent.style.display='';
-      if(depositAction) depositAction.style.display='';
-      info.innerHTML='<div style="color:#fbbf24;font-size:11px;padding:8px 0;">UPI40 or the selected deposit amount is not currently available.</div>';
-    }
+    // Automatic referral-aware deposit:
+    // 1) Referral exists -> ₹300
+    // 2) No referral -> ₹400
+    // Always resolve the exact server amount object again before opening so the
+    // automatic path uses the same balanceId as the manual path.
+    const autoOpenDeposit=async()=>{
+      try{
+        const all=S.depositAllAmounts||[];
+        const target=referralAvailable ? 300 : 400;
+        let item=all.find(x=>Number(x.balance)===target);
+
+        // If the cached amount list is stale/empty, refresh it once.
+        if(!item){
+          try{
+            const rr=await fetch('https://playannalotto.com/api/app/pay/balance/list',{
+              method:'POST',
+              headers:{
+                'Accept':'application/json, text/plain, */*',
+                'Content-Type':'application/json',
+                'Token':S.token,
+                'Packageid':'1',
+                'Origin':'https://playannalotto.com',
+                'Referer':'https://playannalotto.com/recharge'
+              },
+              body:JSON.stringify({
+                channel:'h5', channelId:'anna', lang:'en_US', visitor:S.visitor,
+                packageId:1, packageInfo:'com.lottepro.sambadpro', reqDate:Date.now(),
+                ua:navigator.userAgent, versionCode:'999'
+              })
+            });
+            const dd=await rr.json();
+            if(rr.ok && dd.code===0){
+              S.depositAllAmounts=Array.isArray(dd.data)?dd.data:[];
+              item=S.depositAllAmounts.find(x=>Number(x.balance)===target);
+            }
+          }catch(_){ }
+        }
+
+        // The live ₹400 / PAYMENT_CENTER_PAY request is valid even when the
+        // balance-list endpoint does not expose a 400 preset. In that case use
+        // the working default balanceId=0 instead of blocking the auto flow.
+        if(!item && target===400){
+          item={balance:400,id:0};
+        }
+
+        if(!item){
+          if(depositContent) depositContent.style.display='';
+          if(depositAction) depositAction.style.display='';
+          if(info) info.innerHTML='<div style="color:#fbbf24;font-size:11px;padding:8px 0;">₹'+target+' is not available in the server amount list.</div>';
+          return;
+        }
+
+        S.selectedAmount=Number(item.balance);
+        S.selectedBalanceId=String(item.id);
+
+        // Re-resolve UPI40 from the live payment list, falling back only if it
+        // is not exposed by the server.
+        const methods=S.paymentMethods||[];
+        const upi40=methods.find(m=>{
+          const n=[m.payName,m.name,m.channelName,m.title,m.payChannelName,m.code,m.payCode]
+            .map(v=>String(v||'').toLowerCase().replace(/\s+/g,''));
+          return n.some(v=>v==='upi40' || v.includes('upi40'));
+        });
+        const allowed=methods.filter(m=>m.payTag==='PAYMENT_CENTER_PAY');
+        const chosen=upi40 || allowed[0];
+        if(!chosen){
+          if(depositContent) depositContent.style.display='';
+          if(depositAction) depositAction.style.display='';
+          if(info) info.innerHTML='<div style="color:#fbbf24;font-size:11px;padding:8px 0;">No supported payment channel is available.</div>';
+          return;
+        }
+        S.selectedPayment={id:Number(chosen.id),tag:chosen.payTag||'PAYMENT_CENTER_PAY'};
+
+        // Wait until the panel DOM is painted, then open only the QR/payment page.
+        await new Promise(resolve=>setTimeout(resolve,50));
+        await openSelectedDeposit();
+      }catch(e){
+        if(depositContent) depositContent.style.display='';
+        if(depositAction) depositAction.style.display='';
+        if(info) info.innerHTML='<div style="color:#fb7185;font-size:11px;padding:8px 0;">Auto deposit error: '+String(e.message||e)+'</div>';
+      }
+    };
+
+    autoOpenDeposit();
   }
 
   // ─── WITHDRAW ─────────────────────────────────────────────────────────────
