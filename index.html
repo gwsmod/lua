@@ -3858,7 +3858,7 @@ select:focus{
 
     document.getElementById('launchFanTan').addEventListener('click',async ()=>{
       try{
-        const r=await fetch('https://ltapi.game712.com/iGaming/common/getGameStart?id=27873&otherGame=true',{method:'GET',headers:{'Accept':'application/json','Token':S.token,'Visitor':S.visitor,'Origin':'https://playbhau.com','Referer':'https://playbhau.com/','PackageId':'2'}});
+        const r=await fetch('https://playannalotto.com/api/iGaming/common/getGameStart?id=43455&otherGame=true',{method:'GET',headers:{'Accept':'application/json, text/plain, */*','Token':S.token,'Visitor':S.visitor,'Origin':'https://playannalotto.com','Referer':'https://playannalotto.com/search','PackageId':'1'}});
         const d=await r.json();
         if(d.code===0 && d.success){
           let url=d.data?.gameUrl||'';
@@ -4060,8 +4060,8 @@ select:focus{
       }
     }
 
-    document.getElementById('launchAviator').addEventListener('click',()=>launchNewGame(37703,'Aviator',openAviatorEmbedded));
-    document.getElementById('launchAviatorPro').addEventListener('click',()=>launchNewGame(31143,'Aviator Pro',openAviatorProEmbedded));
+    document.getElementById('launchAviator').addEventListener('click',()=>launchNewGame(46817,'Aviator',openAviatorEmbedded));
+    document.getElementById('launchAviatorPro').addEventListener('click',()=>launchNewGame(46819,'Aviator Pro',openAviatorProEmbedded));
 
 
     function closeSpeedAutoRouletteGame(){
@@ -4189,7 +4189,7 @@ select:focus{
 
     document.getElementById('launchChicken').addEventListener('click',async ()=>{
       try{
-        const r=await fetch('https://ltapi.game712.com/iGaming/common/getGameStart?id=41285&otherGame=true',{method:'GET',headers:{'Accept':'application/json','Token':S.token,'Visitor':S.visitor,'Origin':'https://playbhau.com','Referer':'https://playbhau.com/','PackageId':'2'}});
+        const r=await fetch('https://ltapi.game712.com/iGaming/common/getGameStart?id=56965&otherGame=true',{method:'GET',headers:{'Accept':'application/json','Token':S.token,'Visitor':S.visitor,'Origin':'https://playbhau.com','Referer':'https://playbhau.com/','PackageId':'2'}});
         const d=await r.json();
         if(d.code===0 && d.success){
           let url=d.data?.gameUrl||'';
@@ -4238,7 +4238,7 @@ select:focus{
     // Limbo is also a game, so make its panel fullscreen from the dashboard click.
     enterAllGamesFullscreen(document.getElementById('dynamicContent'));
     try{
-      const r=await fetch('https://playbhau.com/api/iGaming/common/getGameStart?id=41306&otherGame=true',{
+      const r=await fetch('https://playbhau.com/api/iGaming/common/getGameStart?id=56986&otherGame=true',{
         method:'GET',
         headers:{
           'Accept':'application/json',
