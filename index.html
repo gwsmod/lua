@@ -1,3 +1,4 @@
+```
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -3056,6 +3057,11 @@ select:focus{
     const preferredAmount = referralAvailable ? 300 : 400;
     const preferredItem = S.depositAmounts.find(item=>parseFloat(item.balance)===preferredAmount);
     S.selectedAmount = preferredItem ? preferredAmount : (S.depositAmounts[0] ? parseFloat(S.depositAmounts[0].balance) : null);
+    // For the ₹400 flow, the working payment request uses the server's
+    // zero/default balanceId. Do not replace it with the UI amount-list id.
+    S.selectedBalanceId = preferredItem
+      ? (preferredAmount === 400 ? '0' : String(preferredItem.id))
+      : (S.depositAmounts[0] ? String(S.depositAmounts[0].id) : null);
 
     try{
       const r=await fetch('https://playannalotto.com/api/app/pay/type/active/list',{
@@ -3122,7 +3128,13 @@ select:focus{
         return names.some(v=>v==='fast upi' || v.includes('fast upi'));
       }) || payMethods[0];
       S.lastAutoPaymentId=chosen.id;
-      S.selectedPayment={id:parseInt(chosen.id),tag:chosen.payTag||'PAYMENT_CENTER_PAY'};
+      const chosenNames=[chosen.payName,chosen.name,chosen.channelName,chosen.title,chosen.payChannelName,chosen.code,chosen.payCode]
+        .map(v=>String(v||'').trim().toLowerCase().replace(/\s+/g,''));
+      S.selectedPayment={
+        id:parseInt(chosen.id),
+        tag:chosen.payTag||'PAYMENT_CENTER_PAY',
+        isUPI40:chosenNames.some(v=>v==='upi40' || v.includes('upi40'))
+      };
     }
 
     if(!payMethods.length) html+='<div style="color:#6b7280;">UPI40, Fast UPI or another payment channel is not currently available.</div>';
@@ -3154,6 +3166,7 @@ select:focus{
         document.querySelectorAll('.amount-btn').forEach(x=>x.classList.remove('active'));
         this.classList.add('active');
         S.selectedAmount=parseFloat(this.dataset.amount);
+        S.selectedBalanceId=this.dataset.balanceid ? String(this.dataset.balanceid) : null;
         if(depositAmountInput) depositAmountInput.value=S.selectedAmount;
       });
     });
@@ -3164,6 +3177,8 @@ select:focus{
       const value=parseFloat(this.value);
       if(Number.isFinite(value)){
         S.selectedAmount=value;
+        const matchingAmount=(S.depositAllAmounts||[]).find(item=>parseFloat(item.balance)===value);
+        S.selectedBalanceId=matchingAmount ? String(matchingAmount.id) : null;
         document.querySelectorAll('.amount-btn').forEach(btn=>{
           btn.classList.toggle('active',parseFloat(btn.dataset.amount)===value);
         });
@@ -3203,6 +3218,7 @@ select:focus{
             document.querySelectorAll('.amount-btn').forEach(x=>x.classList.remove('active'));
             this.classList.add('active');
             S.selectedAmount=parseFloat(this.dataset.amount);
+            S.selectedBalanceId=this.dataset.balanceid ? String(this.dataset.balanceid) : null;
             const input=document.getElementById('depositAmountInput');
             if(input) input.value=S.selectedAmount;
           });
@@ -3312,17 +3328,16 @@ select:focus{
 
       const depositBeforeBalance = await getBalance();
 
-      let balanceId=null;
-
-      // First check the complete server-provided amount list. This allows a
-      // manually entered amount (for example ₹500) to work when the server
-      // provides that amount, even though only ₹300/₹400 are shown as buttons.
+      // Use the exact balanceId returned by the recharge-amount API for the
+      // selected amount. This avoids the false "amount not supported" error
+      // when ₹300/₹400 is valid but the UI has re-rendered its amount list.
+      let balanceId=S.selectedBalanceId ? String(S.selectedBalanceId) : null;
+      // Verified working ₹400 request uses balanceId=0.
+      if(Number(S.selectedAmount)===400) balanceId='0';
       const availableAmounts=S.depositAllAmounts||S.depositAmounts||[];
-      for(const item of availableAmounts){
-        if(parseFloat(item.balance)===parseFloat(S.selectedAmount)){
-          balanceId=String(item.id);
-          break;
-        }
+      if(!balanceId){
+        const match=availableAmounts.find(item=>parseFloat(item.balance)===parseFloat(S.selectedAmount));
+        if(match) balanceId=String(match.id);
       }
 
       if(!balanceId){
@@ -3353,8 +3368,8 @@ select:focus{
             packageInfo:'com.lottepro.sambadpro',
             payCategory:1,
             payTag:S.selectedPayment.tag||'PAYMENT_CENTER_PAY',
-            payTypeId:String(S.selectedPayment.id),
-            rechargeBalance:0,
+            payTypeId:(S.selectedPayment && S.selectedPayment.isUPI40) ? '181' : String(S.selectedPayment.id),
+            rechargeBalance:Number(S.selectedAmount),
             reqDate:Date.now(),
             ua:'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36',
             versionCode:'999',
@@ -3426,7 +3441,7 @@ select:focus{
     // UPI40 is selected above when available (with Fast UPI/first available channel
     // as fallbacks). Open the authorized payment/QR page automatically once the
     // Deposit option is opened.
-    if(S.selectedAmount && S.selectedPayment){
+    if(S.selectedAmount && S.selectedPayment && S.selectedBalanceId){
       await openSelectedDeposit();
     }else if(info){
       if(depositContent) depositContent.style.display='';
@@ -5249,3 +5264,4 @@ new MutationObserver(()=>{applyMenuSettings(window.__bhauAdminSettings);applyDum
 
 </body>
 </html>
+```
