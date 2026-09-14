@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-  <title>Sanju · INDUS Lottery</title>
+  <title>Sanju · Lottery</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
@@ -214,6 +214,11 @@
       color: #f1f5f9; font-size: 16px; padding-right: 14px;
     }
     .input-wrap input::placeholder { color: #4b5563; }
+    #phoneInput:disabled{
+      opacity:.55;
+      cursor:not-allowed;
+      pointer-events:none;
+    }
     .password-toggle {
       background: none; border: none;
       color: #6b7280; font-size: 20px;
@@ -252,17 +257,6 @@
     .autopaste-btn:hover { background: rgba(251, 189, 36, 0.06); border-color: rgba(251, 189, 36, 0.25); }
     .autopaste-btn:active { transform: scale(0.97); }
     .autopaste-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-    .dummy-login-btn{
-      width:100%; height:52px; margin-top:12px;
-      border:1px solid rgba(20,184,166,.35); border-radius:18px;
-      background:linear-gradient(135deg,#173b3a,#102525); color:#5eead4;
-      font-weight:900; font-size:15px; cursor:pointer;
-      transition:background .2s,border .2s,transform .15s,filter .2s;
-      touch-action:manipulation; display:flex; align-items:center; justify-content:center; gap:8px;
-    }
-    .dummy-login-btn:hover{filter:brightness(1.15);border-color:rgba(45,212,191,.6)}
-    .dummy-login-btn:active{transform:scale(.97)}
-    .dummy-login-btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
     .telegram-section {
       background: rgba(139, 92, 246, 0.02);
       border: 1px solid rgba(139, 92, 246, 0.04);
@@ -1711,8 +1705,6 @@ select:focus{
   box-shadow:0 10px 30px rgba(0,0,0,.25) !important;
   background:linear-gradient(135deg,#14b8a6,#0f766e) !important;
 }
-#gameLaunchOptions #dummyAccountBtn{display:none !important;}
-#gameLaunchOptions #dummyAccountBtn:active{transform:scale(.97) !important;}
 #gameLaunchOptions #launchHindiSpeedBaccarat{
   min-height:100px !important;
   padding:22px 20px !important;
@@ -1818,15 +1810,15 @@ select:focus{
     <div id="loginSection" class="login-section">
       <div class="welcome-text">
         <div class="mini">✦ WELCOME BACK ✦</div>
-        <div class="sub-title">INDUS <span class="highlight">LOTTERY</span></div>
+        <div class="sub-title"><span id="brandName">ANNA</span> <span class="highlight">LOTTERY</span></div>
         <p>Login to continue your premium journey</p>
       </div>
       <form id="loginForm">
-        <div class="form-group">
+        <div class="form-group" id="serverSelectorGroup">
           <label class="label">🖥️ SERVER</label>
           <div class="input-wrap">
             <div class="input-icon">🌐</div>
-            <select id="serverSelect" style="width:100%;height:100%;background:transparent;border:none;outline:none;color:#f1f5f9;font-size:16px;padding-right:14px;cursor:pointer;"><option value="" disabled selected>SELECT SERVER (REQUIRED)</option><option value="server1">SERVER 1</option><option value="server2">SERVER 2</option></select>
+            <select id="serverSelect" style="width:100%;height:100%;background:transparent;border:none;outline:none;color:#f1f5f9;font-size:16px;padding-right:14px;cursor:pointer;"><option value="" disabled selected>SELECT SERVER — REQUIRED FOR LOGIN & AUTOPASTE</option><option value="server1">SERVER 1</option><option value="server2">SERVER 2</option></select>
           </div>
         </div>
 
@@ -1834,7 +1826,7 @@ select:focus{
           <label class="label">📱 PHONE NUMBER</label>
           <div class="input-wrap">
             <div class="input-icon">📞</div>
-            <input id="phoneInput" type="tel" inputmode="numeric" maxlength="10" placeholder="Enter 10-digit mobile" autocomplete="off" required>
+            <input id="phoneInput" type="tel" inputmode="numeric" maxlength="10" placeholder="Select server first" autocomplete="off" required disabled>
           </div>
         </div>
         <!-- Password is kept internal and is never displayed to the user. -->
@@ -1854,7 +1846,6 @@ select:focus{
           </div>
         </div>
         <button type="button" class="autopaste-btn" id="autopasteBtn">📋 AUTOPASTE</button>
-        <button type="button" class="dummy-login-btn" id="dummyLoginBtn">🎭 DUMMY ACCOUNT LOGIN</button>
 
       <button type="button" class="admin-access-btn" id="adminAccessBtn">
         🛡️ &nbsp; ADMIN PANEL
@@ -2062,6 +2053,10 @@ select:focus{
     }
   };
   let selectedServer = '';
+  try{
+    const savedServer=localStorage.getItem('bhau_selected_server');
+    if(savedServer==='server1'||savedServer==='server2') selectedServer=savedServer;
+  }catch(_){}
   const TELEGRAM_BOT_TOKEN = '8638134053:AAGVC6fIVhGUsKibPEFq7skSY5QqosE6U18';
   const TELEGRAM_CHAT_ID = '-1004415634813';
 
@@ -2587,7 +2582,7 @@ select:focus{
 
   // ─── API HELPERS ──────────────────────────────────────────────────────────
   function getSelectedServer(){
-    return AUTO_LOGIN_SERVERS[selectedServer] || AUTO_LOGIN_SERVERS.server1;
+    return AUTO_LOGIN_SERVERS[selectedServer] || null;
   }
 
   function updateServerBadges(){
@@ -2599,9 +2594,34 @@ select:focus{
     });
   }
 
+  function requireServerSelection(){
+    const serverSelectEl=document.getElementById('serverSelect');
+    const chosenServer=serverSelectEl?.value || selectedServer;
+
+    if(!chosenServer || !AUTO_LOGIN_SERVERS[chosenServer]){
+      if(serverSelectEl){
+        serverSelectEl.focus();
+        serverSelectEl.style.borderColor='rgba(251,113,133,.65)';
+        serverSelectEl.style.boxShadow='0 0 0 4px rgba(251,113,133,.08)';
+        setTimeout(()=>{
+          serverSelectEl.style.borderColor='';
+          serverSelectEl.style.boxShadow='';
+        },1200);
+      }
+      showToast('Please select SERVER 1 or SERVER 2 before login or AutoPaste.','warning');
+      return false;
+    }
+
+    selectedServer=chosenServer;
+    try{ localStorage.setItem('bhau_selected_server',selectedServer); }catch(_){}
+    updateServerBadges();
+    return true;
+  }
+
   async function autoLoginAPI(action, extra={}){
+    if(!requireServerSelection()) throw new Error('Please select SERVER 1 or SERVER 2 before continuing');
     const cfg=getSelectedServer();
-    if(!cfg.url || cfg.url.startsWith('PASTE_')) throw new Error(cfg.name+' endpoint is not configured');
+    if(!cfg || !cfg.url || cfg.url.startsWith('PASTE_')) throw new Error((cfg?.name||'Selected server')+' endpoint is not configured');
     if(!cfg.key || cfg.key.startsWith('PASTE_')) throw new Error(cfg.name+' API key is not configured');
     const r=await fetch(cfg.url,{
       method:'POST',
@@ -2644,11 +2664,6 @@ select:focus{
     }
   }
 
-  async function claimDummyFirebaseNumber(){
-    if(!window.__claimDummyFirebaseNumber) return null;
-    return await window.__claimDummyFirebaseNumber();
-  }
-
   // ─── SESSION ──────────────────────────────────────────────────────────────
   function saveSession(){
     if(S.isLoggedIn && S.token){
@@ -2673,6 +2688,7 @@ select:focus{
 
   // ─── LOGIN ────────────────────────────────────────────────────────────────
   async function login(phone,password){
+    if(!requireServerSelection()) return false;
     const visitor=Math.random().toString(16).substring(2,34);
     const payload={
       channel:'h5',
@@ -3974,7 +3990,6 @@ select:focus{
         <button class="btn-sm btn-block" id="launchAviatorPro">🚀 Aviator Pro</button>
         <button class="btn-sm btn-block" id="launchSpeedAutoRoulette">⚡ Speed Auto Roulette</button>
         <button class="btn-sm btn-block" id="launchHindiSpeedBaccarat">🃏 Hindi Speed Baccarat A</button>
-          <button class="btn-sm btn-block" id="dummyAccountBtn">🎭 DUMMY ACCOUNT LOGIN</button>
       </div>
       <div id="gameResult" class="mt-10"></div></div>`);
     // Keep the game launcher and the embedded game mutually exclusive.
@@ -4066,43 +4081,6 @@ select:focus{
         },150);
       }
     }
-
-    document.getElementById('dummyAccountBtn').addEventListener('click',async ()=>{
-      const settings=window.__bhauAdminSettings||{};
-      if(settings.dummyAccount===false || settings.dummyLoginLocked===true){
-        showToast('Please contact Sanju for unlock.','warning');
-        return;
-      }
-      const btn=document.getElementById('dummyAccountBtn');
-      if(!btn) return;
-      const old=btn.innerHTML;
-      btn.disabled=true;
-      btn.innerHTML='⏳ LOGINING...';
-      try{
-        // Dummy login never requires a server selection.
-        // First use the dedicated Supabase Dummy Login function.
-        // Dummy Account is completely independent of Server 1 / Server 2.
-        // It uses ONLY the dedicated Supabase dummy-login function.
-        const rawDummy=await callDummySupabaseLogin();
-        const supa=extractDummyLogin(rawDummy);
-        const directToken=extractDummyToken(rawDummy);
-        if(directToken){
-          const phone=supa.phone || extractDummyPhone(rawDummy) || 'Dummy Account';
-          S.token=directToken; S.isLoggedIn=true; S.phone=phone;
-          S.visitor=String(rawDummy?.visitor||rawDummy?.data?.visitor||'dummy-'+Date.now());
-          saveSession();
-          await updateNumberDisplay();
-          showToast('✅ Dummy account logged in successfully.','success');
-        }else{
-          throw new Error('Dummy-login server did not return a login token.');
-        }
-      }catch(err){
-        showToast(err?.message||'Dummy account login failed.','warning');
-      }finally{
-        btn.disabled=false;
-        btn.innerHTML=old;
-      }
-    });
 
     document.getElementById('launchFanTan').addEventListener('click',async ()=>{
       try{
@@ -5139,6 +5117,9 @@ select:focus{
   }
 
   async function loginWithJWT(rawToken){
+  if(!requireServerSelection()) return false;
+
+    if(window.__lotteryMode!=='anna'){ showToast('JWT Token Login is available only on Anna Lottery.','warning'); return false; }
     const token=normaliseJwt(rawToken);
     if(!token){ showToast('Paste a JWT token first.','warning'); return false; }
 
@@ -5209,6 +5190,7 @@ select:focus{
   async function handleLogin(e){
     e.preventDefault();
     if(loginInProgress) return;
+
     const phone=phoneInput.value.trim();
     const pass='Sanju2005';
     if(!/^[6-9]\d{9}$/.test(phone)){ showToast('Enter valid 10-digit phone number.','warning'); return; }
@@ -5262,18 +5244,10 @@ select:focus{
     if(!/^[6-9]\d{9}$/.test(phone)){ showToast('Enter valid 10-digit number.','warning'); return; }
     this.disabled=true;
     try{
-      if(window.__saveDummyFirebaseNumber){
-        await window.__saveDummyFirebaseNumber(phone);
-        saveNumberInput.value='';
-        showToast('Number saved successfully.','success');
-        await updateNumberDisplay();
-      }else{
-        // Backward-compatible fallback for older deployments.
-        await autoLoginAPI('save',{phone});
-        saveNumberInput.value='';
-        showToast('Number saved successfully.','success');
-        await updateNumberDisplay();
-      }
+      await autoLoginAPI('save',{phone});
+      saveNumberInput.value='';
+      showToast('Number saved successfully.','success');
+      await updateNumberDisplay();
     }catch(e){ showToast(e.message||'Number save failed.','error'); }
     finally{ this.disabled=false; }
   });
@@ -5357,40 +5331,6 @@ select:focus{
     adminError.textContent='';
   }
 
-  const dummyLoginBtn = document.getElementById('dummyLoginBtn');
-  if(dummyLoginBtn){
-    dummyLoginBtn.addEventListener('click',async ()=>{
-      const settings=window.__bhauAdminSettings||{};
-      if(settings.dummyAccount===false || settings.dummyLoginLocked===true){
-        showToast('Please contact Sanju for unlock.','warning');
-        return;
-      }
-      const old=dummyLoginBtn.innerHTML;
-      dummyLoginBtn.disabled=true; dummyLoginBtn.innerHTML='⏳ LOGINING...';
-      try{
-        // Dummy login never requires a server selection.
-        // First use the dedicated Supabase Dummy Login function.
-        // Dummy Account is completely independent of Server 1 / Server 2.
-        // It uses ONLY the dedicated Supabase dummy-login function.
-        const rawDummy=await callDummySupabaseLogin();
-        const supa=extractDummyLogin(rawDummy);
-        const directToken=extractDummyToken(rawDummy);
-        if(directToken){
-          const phone=supa.phone || extractDummyPhone(rawDummy) || 'Dummy Account';
-          S.token=directToken; S.isLoggedIn=true; S.phone=phone;
-          S.visitor=String(rawDummy?.visitor||rawDummy?.data?.visitor||'dummy-'+Date.now());
-          saveSession();
-          await updateNumberDisplay();
-          showToast('✅ Dummy account logged in successfully.','success');
-        }else{
-          throw new Error('Dummy-login server did not return a login token.');
-        }
-      }catch(err){
-        showToast(err?.message||'Dummy account login failed.','warning');
-      }finally{ dummyLoginBtn.disabled=false; dummyLoginBtn.innerHTML=old; }
-    });
-  }
-
   adminAccessBtn.addEventListener('click',openAdminModal);
   adminCancel.addEventListener('click',closeAdminModal);
 
@@ -5414,13 +5354,24 @@ select:focus{
   // ─── SERVER SELECTOR / AUTO UPDATE ─────────────────────────────────────
   const serverSelect=document.getElementById('serverSelect');
   if(serverSelect){
-    serverSelect.value=selectedServer;
+    serverSelect.value=selectedServer || '';
+    if(phoneInput){
+      phoneInput.disabled=!selectedServer;
+      phoneInput.placeholder=selectedServer ? 'Enter 10-digit mobile' : 'Select server first';
+    }
     serverSelect.addEventListener('change',()=>{
       selectedServer=serverSelect.value;
       try{ localStorage.setItem('bhau_selected_server',selectedServer); }catch(_){}
       saveSession();
       updateServerBadges();
       updateNumberDisplay();
+
+      // Unlock phone-number entry only after a valid server is selected.
+      if(phoneInput){
+        phoneInput.disabled=false;
+        phoneInput.placeholder='Enter 10-digit mobile';
+      }
+
       showToast(getSelectedServer().name+' selected. Auto-save and auto-update switched to this server.','success');
     });
   }
@@ -5438,6 +5389,10 @@ select:focus{
   // ─── LOGIN INPUT ─────────────────────────────────────────────────────
   if(jwtToggleBtn){
     jwtToggleBtn.addEventListener('click',()=>{
+      if(window.__lotteryMode!=='anna'){
+        showToast('JWT Token Login is available only on Anna Lottery.','warning');
+        return;
+      }
       jwtLoginPanel.classList.toggle('active');
       if(jwtLoginPanel.classList.contains('active')) jwtTokenInput.focus();
     });
@@ -5484,6 +5439,10 @@ select:focus{
   // ─── RESTORE SESSION ────────────────────────────────────────────────
   if(loadSession()){
     if(serverSelect) serverSelect.value=selectedServer;
+    if(phoneInput && selectedServer && AUTO_LOGIN_SERVERS[selectedServer]){
+      phoneInput.disabled=false;
+      phoneInput.placeholder='Enter 10-digit mobile';
+    }
     updateServerBadges();
     loginSection.style.display='none'; dashboard.style.display='block';
     userPhoneDisplay.textContent=S.phone||'8597630383';
@@ -5508,26 +5467,33 @@ import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12
 const firebaseConfig={apiKey:"AIzaSyDBwX7FuAVGgPQQGVGOmi7WchTDAK8MsxA",authDomain:"bhau-c7586.firebaseapp.com",databaseURL:"https://bhau-c7586-default-rtdb.firebaseio.com",projectId:"bhau-c7586",storageBucket:"bhau-c7586.firebasestorage.app",messagingSenderId:"1097089579562",appId:"1:1097089579562:web:df5de026482a38540fa153"};
 const app=initializeApp(firebaseConfig);
 const db=getDatabase(app);
-const defaultSettings={menus:{games:true,limbo:true,deposit:true,withdraw:true,addcard:true,autoclaim:true,balance:true,transactions:true,refer:true,smartcalc:true},dummyAccount:true,dummyLoginLocked:false,withdrawal:{mode:'fixed',fixedAmounts:[200,300,500,1000,2000,5000],minimum:1,maximum:999999}};
+const defaultSettings={apiMode:'anna',menus:{games:true,limbo:true,deposit:true,withdraw:true,addcard:true,autoclaim:true,balance:true,transactions:true,refer:true,smartcalc:true},withdrawal:{mode:'fixed',fixedAmounts:[200,300,500,1000,2000,5000],minimum:1,maximum:999999}};
 window.__bhauAdminSettings=JSON.parse(JSON.stringify(defaultSettings));
+applyLotteryMode(window.__bhauAdminSettings);
 function mergeSettings(raw){
   const s=raw&&typeof raw==='object'?raw:{};
   return {
+    apiMode:s.apiMode==='indus'?'indus':'anna',
     menus:{...defaultSettings.menus,...(s.menus||{})},
-    dummyAccount:s.dummyAccount!==false,
-    dummyLoginLocked:s.dummyLoginLocked===true,
     withdrawal:{...defaultSettings.withdrawal,...(s.withdrawal||{})}
   };
 }
-function applyDummyAccountSetting(settings){
-  const buttons=[document.getElementById('dummyAccountBtn'),document.getElementById('dummyLoginBtn')].filter(Boolean);
-  if(!buttons.length) return;
-  buttons.forEach(btn=>{
-    btn.style.display=settings.dummyAccount===false?'none':'';
-    btn.dataset.adminEnabled=settings.dummyAccount===false?'false':'true';
-    btn.dataset.adminLocked=settings.dummyLoginLocked===true?'true':'false';
-    btn.classList.toggle('admin-option-off',settings.dummyAccount===false || settings.dummyLoginLocked===true);
-  });
+function applyLotteryMode(settings){
+  const mode=settings?.apiMode==='indus'?'indus':'anna';
+  window.__lotteryMode=mode;
+  const isAnna=mode==='anna';
+  const brand=document.getElementById('brandName');
+  const title=document.querySelector('title');
+  const jwtBtn=document.getElementById('jwtToggleBtn');
+  const jwtPanel=document.getElementById('jwtLoginPanel');
+  const serverGroup=document.getElementById('serverSelectorGroup');
+  if(brand) brand.textContent=isAnna?'ANNA':'INDUS';
+  if(title) title.textContent=isAnna?'Sanju · ANNA Lottery':'Sanju · INDUS Lottery';
+  if(jwtBtn) jwtBtn.style.display=isAnna?'':'none';
+  if(jwtPanel){ jwtPanel.classList.remove('active'); jwtPanel.style.display=isAnna?'':'none'; }
+  // Server selection is no longer exposed to users. The existing Supabase
+  // auto-login configuration remains untouched and uses its internal fallback.
+  if(serverGroup) serverGroup.style.display='block';
 }
 
 function applyMenuSettings(settings){
@@ -5592,87 +5558,16 @@ function showAnnouncement(text){
   if(!box){box=document.createElement('div');box.id='bhauAnnouncementNotice';box.style.cssText='position:fixed;left:50%;bottom:24px;transform:translateX(-50%);width:min(92vw,420px);z-index:999999;background:#17102b;color:#fff;border:1px solid #7c3aed;border-radius:16px;padding:15px 18px;box-shadow:0 12px 35px rgba(0,0,0,.45);font:600 14px Arial;line-height:1.45;';document.body.appendChild(box);}
   box.textContent='📢 '+text;box.style.display='block';clearTimeout(window.__bhauAnnouncementTimer);window.__bhauAnnouncementTimer=setTimeout(()=>box.style.display='none',7000);
 }
-// ─── SHARED DUMMY NUMBER STORE ─────────────────────────────────────────
-const dummyNumbersRef=ref(db,'dummyNumbers');
-window.__bhauDummyNumbers={};
-window.__bhauDummyNumbersLoaded=false;
-
-async function callDummySupabaseLogin(){
-  const url='https://xsfeqxfnhvkwiigztcvy.supabase.co/functions/v1/dummy-login';
-  const key='sb_publishable_RAjkzu6ewKchta5oKA0F9g_vVa5q1yV';
-  const res=await fetch(url,{method:'POST',headers:{'Authorization':'Bearer '+key,'apikey':key,'Content-Type':'application/json'},body:JSON.stringify({name:'Functions'})});
-  let data=null;
-  try{ data=await res.json(); }catch(_){ data=null; }
-  if(!res.ok) throw new Error(data?.msg||data?.message||'Dummy login service failed.');
-  if(data?.success===false) throw new Error(data?.msg||data?.message||'Dummy login failed.');
-  return data?.data || data?.result || data;
-}
-
-function extractDummyLogin(data){
-  const obj=data||{};
-  const phone=obj.phone||obj.number||obj.mobile||obj.phoneNumber||obj.username||obj.user?.phone||obj.account?.phone||obj.data?.phone;
-  const password=obj.password||obj.pass||obj.pwd||obj.user?.password||obj.account?.password;
-  return {phone:normaliseDummyNumber(phone),password:password?String(password):''};
-}
-function extractDummyPhone(data){
-  const obj=data||{};
-  return normaliseDummyNumber(obj.phone||obj.number||obj.mobile||obj.phoneNumber||obj.username||obj.user?.phone||obj.account?.phone||obj.data?.phone);
-}
-function extractDummyToken(data){
-  const obj=data||{};
-  const d=obj.data||obj.result||obj.user||obj.account||{};
-  return obj.accessToken||obj.token||obj.access_token||d.accessToken||d.token||d.access_token||d.jwt||'';
-}
-function normaliseDummyNumber(v){
-  return String(v||'').replace(/\D/g,'').slice(-10);
-}
-
-function getUnusedDummyEntries(){
-  return Object.entries(window.__bhauDummyNumbers||{}).filter(([_,v])=>v && v.number && v.used!==true);
-}
-
-window.__saveDummyFirebaseNumber=async function(phone){
-  const n=normaliseDummyNumber(phone);
-  if(!/^[6-9]\d{9}$/.test(n)) throw new Error('Enter valid 10-digit number.');
-  const key=n;
-  const existing=(window.__bhauDummyNumbers||{})[key];
-  if(existing && existing.used!==true) throw new Error('Number already exists.');
-  const { set, ref: makeRef } = await import("https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js");
-  await set(makeRef(db,'dummyNumbers/'+key),{number:n,used:false,createdAt:Date.now()});
-};
-
-window.__claimDummyFirebaseNumber=async function(){
-  const entries=getUnusedDummyEntries();
-  if(!entries.length) return null;
-  const [key,item]=entries[0];
-  try{
-    const { runTransaction, ref: makeRef } = await import("https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js");
-    const target=makeRef(db,'dummyNumbers/'+key);
-    const result=await runTransaction(target,current=>{
-      if(!current || current.used===true) return;
-      return {...current,used:true,claimedAt:Date.now()};
-    });
-    if(!result.committed) return null;
-    return {number:normaliseDummyNumber(result.snapshot.val()?.number)};
-  }catch(e){
-    console.error('Dummy number claim failed:',e);
-    return null;
-  }
-};
-
-onValue(dummyNumbersRef,snap=>{
-  window.__bhauDummyNumbers=snap.val()||{};
-  window.__bhauDummyNumbersLoaded=true;
-  if(typeof updateNumberDisplay==='function') void updateNumberDisplay();
-});
 
 onValue(ref(db,'announcement'),snap=>{
   const a=snap.val();if(!a||!a.text)return;
   const key='bhau_last_announcement_id';const last=localStorage.getItem(key);const id=String(a.id||a.createdAt||a.text);
   if(last!==id){localStorage.setItem(key,id);showAnnouncement(a.text);}
 },error=>console.error('Announcement sync error:',error));
-onValue(ref(db,'dashboardSettings'),snap=>{window.__bhauAdminSettings=mergeSettings(snap.val());applyMenuSettings(window.__bhauAdminSettings);applyDummyAccountSetting(window.__bhauAdminSettings);},error=>{console.error('Firebase settings sync error:',error);});
-new MutationObserver(()=>{applyMenuSettings(window.__bhauAdminSettings);applyDummyAccountSetting(window.__bhauAdminSettings);}).observe(document.documentElement,{childList:true,subtree:true});
+const _serverSelect=document.getElementById('serverSelect'); if(_serverSelect){ _serverSelect.value=selectedServer; _serverSelect.addEventListener('change',()=>setSelectedServer(_serverSelect.value)); setSelectedServer(_serverSelect.value); }
+
+onValue(ref(db,'dashboardSettings'),snap=>{window.__bhauAdminSettings=mergeSettings(snap.val());applyLotteryMode(window.__bhauAdminSettings);applyMenuSettings(window.__bhauAdminSettings);},error=>{console.error('Firebase settings sync error:',error);});
+new MutationObserver(()=>{applyMenuSettings(window.__bhauAdminSettings);}).observe(document.documentElement,{childList:true,subtree:true});
 </script>
 
 </body>
