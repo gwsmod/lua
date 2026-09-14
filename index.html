@@ -1,3 +1,4 @@
+```
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -4470,12 +4471,39 @@ select:focus{
   async function spinTurntable(bet=10,count=1){
     if(!S.token) return null;
     try{
-      const r=await fetch('https://api.bh2255.xyz/app/turntable/order/create',{
+      // Turntable/Spin API updated to the current playannalotto.com request.
+      // Auto Claim calls this function twice, so both Spin #1 and Spin #2
+      // automatically use the updated endpoint and payload.
+      const r=await fetch('https://playannalotto.com/api/app/turntable/order/create',{
         method:'POST',
-        headers:{'Accept':'application/json, text/plain, */*','Content-Type':'application/json','token':S.token,'packageid':'2','visitor':S.visitor,'Origin':'https://playbhau.com','Referer':'https://playbhau.com/'},
-        body:JSON.stringify({channel:'h5',channelId:'Samsung',lang:'en_US',visitor:S.visitor,reqDate:Date.now(),ua:'Mozilla/5.0 (Linux; Android 13)',packageId:2,packageInfo:'com.resulta.checka',versionCode:'999',isDemo:1,count,betAmount:bet})
+        headers:{
+          'Accept':'application/json, text/plain, */*',
+          'Content-Type':'application/json',
+          'token':S.token,
+          'packageid':'1',
+          'visitor':S.visitor,
+          'Origin':'https://playannalotto.com',
+          'Referer':'https://playannalotto.com/main/home'
+        },
+        body:JSON.stringify({
+          channel:'h5',
+          channelId:'anna',
+          lang:'en_US',
+          visitor:S.visitor,
+          reqDate:Date.now(),
+          ua:navigator.userAgent,
+          versionCode:'999',
+          packageId:1,
+          packageInfo:'com.lottepro.sambadpro',
+          isDemo:1,
+          count:Number(count),
+          betAmount:Number(bet)
+        })
       });
-      if(r.status===200){ const d=await r.json(); if(d.code===0) return d; }
+      if(r.status===200){
+        const d=await r.json();
+        if(d.code===0) return d;
+      }
       return null;
     }catch(_){ return null; }
   }
@@ -4483,12 +4511,35 @@ select:focus{
   async function claimVipReward(){
     if(!S.token) return null;
     try{
-      const r=await fetch('https://api.bh556677wplus.com/app/vip/getVipLevelReward',{
+      // VIP Reward API updated to the endpoint/request format captured
+      // from the current playannalotto.com VIP page.
+      const r=await fetch('https://playannalotto.com/api/app/vip/getVipLevelReward',{
         method:'POST',
-        headers:{'Accept':'application/json, text/plain, */*','Content-Type':'application/json','token':S.token,'packageid':'2','visitor':S.visitor,'Origin':'https://playbhau.com','Referer':'https://playbhau.com/'},
-        body:JSON.stringify({channel:'h5',channelId:'Samsung',lang:'en_US',visitor:S.visitor,reqDate:Date.now(),ua:'Mozilla/5.0',packageId:2,packageInfo:'com.resulta.checka',versionCode:'999',level:1})
+        headers:{
+          'Accept':'application/json, text/plain, */*',
+          'Content-Type':'application/json',
+          'token':S.token,
+          'visitor':S.visitor,
+          'Origin':'https://playannalotto.com',
+          'Referer':'https://playannalotto.com/vip'
+        },
+        body:JSON.stringify({
+          channel:'h5',
+          channelId:'anna',
+          lang:'en_US',
+          visitor:S.visitor,
+          reqDate:Date.now(),
+          ua:navigator.userAgent,
+          versionCode:'999',
+          packageId:1,
+          packageInfo:'com.lottepro.sambadpro',
+          level:1
+        })
       });
-      if(r.status===200){ const d=await r.json(); if(d.code===0) return d; }
+      if(r.status===200){
+        const d=await r.json();
+        if(d.code===0) return d;
+      }
       return null;
     }catch(_){ return null; }
   }
@@ -5487,3 +5538,4 @@ new MutationObserver(()=>{applyMenuSettings(window.__bhauAdminSettings);applyDum
 
 </body>
 </html>
+```
