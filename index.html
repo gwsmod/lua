@@ -1,4 +1,3 @@
-```
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1702,8 +1701,7 @@ select:focus{
 #gameLaunchOptions #launchFanTanClassic,
 #gameLaunchOptions #launchAviator,
 #gameLaunchOptions #launchAviatorPro,
-#gameLaunchOptions #launchSpeedAutoRoulette,
-#gameLaunchOptions #dummyAccountBtn{
+#gameLaunchOptions #launchSpeedAutoRoulette{
   min-height:100px !important;
   padding:22px 20px !important;
   border-radius:22px !important;
@@ -1713,6 +1711,7 @@ select:focus{
   box-shadow:0 10px 30px rgba(0,0,0,.25) !important;
   background:linear-gradient(135deg,#14b8a6,#0f766e) !important;
 }
+#gameLaunchOptions #dummyAccountBtn{display:none !important;}
 #gameLaunchOptions #dummyAccountBtn:active{transform:scale(.97) !important;}
 #gameLaunchOptions #launchHindiSpeedBaccarat{
   min-height:100px !important;
@@ -4082,7 +4081,7 @@ select:focus{
     document.getElementById('launchFanTanClassic').addEventListener('click',async ()=>{
       const result=document.getElementById('gameResult');
       try{
-        const r=await fetch('https://playannalotto.com/api/iGaming/common/getGameStart?id=21208&otherGame=true',{
+        const r=await fetch('https://playannalotto.com/api/iGaming/common/getGameStart?id=21199&otherGame=true',{
           method:'GET',
           headers:{
             'Accept':'application/json',
@@ -4295,11 +4294,11 @@ select:focus{
     }
 
     async function launchSpeedAutoRoulette(){
-      return launchNewGame(28141,'Speed Auto Roulette',openSpeedAutoRouletteEmbedded);
+      return launchNewGame(43723,'Speed Auto Roulette',openSpeedAutoRouletteEmbedded);
     }
 
     async function launchHindiSpeedBaccarat(){
-      return launchNewGame(29021,'Hindi Speed Baccarat A',openHindiSpeedBaccaratEmbedded);
+      return launchNewGame(44615,'Hindi Speed Baccarat A',openHindiSpeedBaccaratEmbedded);
     }
 
     document.getElementById('launchSpeedAutoRoulette').addEventListener('click',launchSpeedAutoRoulette);
@@ -4535,38 +4534,187 @@ select:focus{
         if(d.code===0){
           const list=d.data?.content||d.data||[];
           for(const t of list){
+            const payName=String(t.payTypeName||'').toLowerCase();
+            const gameName=String(t.gameName||'').trim();
+
+            // The balance endpoint uses consumeType=1 for several unrelated
+            // wallet entries, so it must NOT be used alone to identify a
+            // withdrawal or bet. Prefer the explicit payment/category names.
             const isWithdraw =
-              Number(t.consumeType)===1 ||
               Number(t.payCategory)===2 ||
-              String(t.payTypeName||'').toLowerCase()==='withdraw' ||
-              String(t.payTypeName||'').toLowerCase().includes('withdraw');
+              payName==='withdraw' ||
+              payName.includes('withdraw');
+
+            // Show ALL game/bonus activity in Bet Results, including
+            // VIP rewards, promotions and casino bonuses.
+            const isBet = !isWithdraw && (
+              payName.includes('bet') ||
+              payName.includes('spin') ||
+              payName.includes('vip') ||
+              payName.includes('promotion') ||
+              payName.includes('bonus') ||
+              payName.includes('casino') ||
+              Number(t.payType)===105 ||
+              Number(t.payType)===106 ||
+              Number(t.payType)===19 ||
+              Number(t.payType)===502 ||
+              !!gameName ||
+              Number(t.betAmount)>0 ||
+              Number(t.prizeAmount)>0 ||
+              Number(t.reward)>0
+            );
 
             all.push({
-              type:isWithdraw?'withdraw':'deposit',
+              type:isWithdraw?'withdraw':(isBet?'bet':'deposit'),
               appDate:t.appDate||t.createTime||Date.now(),
-              amount:Number(t.paidAmount??t.price??t.receivedAmount??0),
+              amount:Number(t.betAmount??t.paidAmount??t.price??t.receivedAmount??0),
               balance:Number(t.balance??0),
-              reward:Number(t.reward??0),
+              reward:Number(t.reward??t.prizeAmount??0),
               orderNo:t.orderNo||t.order||'',
               payTypeName:t.payTypeName||'',
               channelName:t.channelName||'',
-              status:(String(t.status)==='2'||Number(t.respCode)===2)?'COMPLETE':(t.status?'PENDING':'COMPLETE'),
+              // Bet/game/bonus records are completed wallet entries unless
+              // the API explicitly reports a different state.
+              status:(isBet
+                ? ((String(t.status||'').toUpperCase()==='FAILED'||Number(t.respCode)===3)?'FAILED':
+                   (String(t.status||'').toUpperCase()==='PENDING'?'PENDING':'COMPLETE'))
+                : ((Number(t.respCode)===3||String(t.status)==='3')?'FAILED':
+                   ((Number(t.respCode)===2||String(t.status)==='2')?'COMPLETE':
+                    ((Number(t.respCode)===1||String(t.status)==='1')?'BANK PROCESSING':'PENDING')))),
               gameName:t.gameName||'',
+              betAmount:Number(t.betAmount??t.price??0),
+              prizeAmount:Number(t.prizeAmount??t.reward??0),
               userCardNumber:t.userCardNumber||'',
               bankName:t.bankName||''
             });
           }
         }
       }
+
+      // Deposit history comes from the dedicated recharge-log endpoint.
+      // The API returns PROCESS while a recharge is still pending and COMPLETE
+      // after the amount has been credited.
+      try{
+        const dr=await fetch('https://playannalotto.com/api/app/pay/recharge/log',{
+          method:'POST',
+          headers:{
+            'Accept':'application/json, text/plain, */*',
+            'Content-Type':'application/json',
+            'Token':S.token,
+            'Packageid':'1',
+            'Origin':'https://playannalotto.com',
+            'Referer':'https://playannalotto.com/record/recharge'
+          },
+          body:JSON.stringify({
+            channel:'h5',
+            channelId:'anna',
+            lang:'en_US',
+            packageId:1,
+            packageInfo:'com.lottepro.sambadpro',
+            pageNo:1,
+            pageSize:10,
+            reqDate:Date.now(),
+            ua:navigator.userAgent,
+            versionCode:'999',
+            visitor:S.visitor
+          })
+        });
+        if(dr.status===200){
+          const dd=await dr.json();
+          if(dd.code===0){
+            const dlist=dd.data?.content||dd.data||[];
+            for(const t of dlist){
+              const rawStatus=String(t.status||'').toUpperCase();
+              all.push({
+                type:'deposit',
+                appDate:t.createTime||t.updateTime||t.appDate||Date.now(),
+                amount:Number(t.paidAmount??t.amount??t.rechargeAmount??0),
+                balance:Number(t.balance??0),
+                reward:Number(t.reward??0),
+                orderNo:t.orderNo||t.order||'',
+                payTypeName:t.payTypeName||'',
+                channelName:t.channelName||'Recharge',
+                status:(rawStatus==='COMPLETE'||rawStatus==='SUCCESS'||Number(t.respCode)===2)?'COMPLETE':
+                       ((rawStatus==='PROCESS'||rawStatus==='PENDING'||rawStatus==='PROCESSING'||Number(t.respCode)===1)?'PENDING':
+                       (rawStatus==='FAILED'||Number(t.respCode)===3?'FAILED':'PENDING')),
+                gameName:'',
+                userCardNumber:'',
+                bankName:''
+              });
+            }
+          }
+        }
+      }catch(_){}
+
+      // Withdrawal history comes from the dedicated paid-log endpoint.
+      // It is loaded together with the normal balance history so the
+      // Withdrawals filter is populated from the same source as the site.
+      try{
+        const wr=await fetch('https://playannalotto.com/api/app/pay/paid/log',{
+          method:'POST',
+          headers:{
+            'Accept':'application/json, text/plain, */*',
+            'Content-Type':'application/json',
+            'Token':S.token,
+            'Packageid':'1',
+            'Origin':'https://playannalotto.com',
+            'Referer':'https://playannalotto.com/record/withdraw'
+          },
+          body:JSON.stringify({
+            channel:'h5',
+            channelId:'anna',
+            lang:'en_US',
+            packageId:1,
+            packageInfo:'com.lottepro.sambadpro',
+            pageNo:1,
+            pageSize:10,
+            reqDate:Date.now(),
+            ua:'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36',
+            versionCode:'999',
+            visitor:S.visitor
+          })
+        });
+        if(wr.status===200){
+          const wd=await wr.json();
+          if(wd.code===0){
+            const wlist=wd.data?.content||wd.data||[];
+            for(const t of wlist){
+              all.push({
+                type:'withdraw',
+                appDate:t.createTime||t.updateTime||t.appDate||Date.now(),
+                amount:Number(t.paidAmount??t.amount??t.withdrawAmount??0),
+                balance:Number(t.balance??0),
+                reward:Number(t.reward??t.prizeAmount??0),
+                orderNo:t.orderNo||t.order||'',
+                payTypeName:t.payTypeName||'',
+                channelName:t.channelName||'SYSTEM',
+                status:(Number(t.respCode)===3||String(t.status)==='3')?'FAILED':((Number(t.respCode)===2||String(t.status)==='2')?'COMPLETE':((Number(t.respCode)===1||String(t.status)==='1')?'BANK PROCESSING':'PENDING')),
+                gameName:'',
+                userCardNumber:t.userCardNumber||'',
+                bankName:t.bankName||''
+              });
+            }
+          }
+        }
+      }catch(_){}
     }catch(_){}
+
+    // De-duplicate records returned by both history sources.
+    const seen=new Set();
+    all=all.filter(t=>{
+      const key=[t.type,t.orderNo,t.appDate,t.amount].join('|');
+      if(seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
 
     all.sort((a,b)=>(b.appDate||0)-(a.appDate||0));
 
     let html=`<div class="dynamic-card"><div class="title">📋 Transaction History (${all.length}) <button class="btn-close-panel" onclick="window._closePanel()">✕ Close</button></div>
       <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
-        <button class="btn-sm" id="txnAll" style="flex:1;background:rgba(139,92,246,0.04);color:#a5b4fc;border:1px solid rgba(139,92,246,0.04);">All</button>
         <button class="btn-sm btn-success" id="txnDeposit" style="flex:1;">Deposits</button>
         <button class="btn-sm btn-withdraw" id="txnWithdraw" style="flex:1;">Withdrawals</button>
+        <button class="btn-sm" id="txnBet" style="flex:1;background:rgba(59,130,246,.10);color:#93c5fd;">Bet Results</button>
       </div>
       <div id="transactionList" style="max-height:350px;overflow-y:auto;font-size:12px;">`;
 
@@ -4576,16 +4724,17 @@ select:focus{
       for(const t of all){
         const date=new Date(t.appDate); const ts=date.toLocaleString();
         const isDep=t.type==='deposit';
+        const isBet=t.type==='bet';
         const amt=parseFloat(t.amount||0).toFixed(2);
         const bal=parseFloat(t.balance||0).toFixed(2);
-        const icon=isDep?'💰':'💸';
-        const typeLabel=isDep?'Deposit':'Withdraw';
-        const sc=t.status==='COMPLETE'?'#34d399':'#fbbf24';
-        const displayName=isDep?(t.channelName||t.payTypeName||'Recharge'):(t.bankName||t.payTypeName||'Withdraw');
+        const icon=isDep?'💰':(isBet?'🎯':'💸');
+        const typeLabel=isDep?'Deposit':(isBet?'Bet Result':'Withdraw');
+        const sc=t.status==='COMPLETE'?'#34d399':(t.status==='FAILED'?'#fb7185':(t.status==='BANK PROCESSING'?'#60a5fa':'#fbbf24'));
+        const displayName=isDep?(t.channelName||t.payTypeName||'Recharge'):(isBet?(t.gameName||t.payTypeName||'Bet Result'):(t.bankName||t.payTypeName||'Withdraw'));
         html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-bottom:1px solid rgba(255,255,255,0.01);" data-type="${t.type}">
           <div style="flex:1;"><div><span>${icon} ${typeLabel}</span><span style="color:#fbbf24;margin-left:8px;font-weight:600;">₹${amt}</span>${t.gameName?`<span style="color:#6b7280;font-size:10px;margin-left:6px;">🎮 ${t.gameName}</span>`:''}</div>
           <div style="color:#6b7280;font-size:9px;margin-top:2px;">${displayName}${!isDep&&t.userCardNumber?` · ${t.userCardNumber}`:''} · ${ts}<span style="color:#6b7280;margin-left:6px;">Bal: ₹${bal}</span></div></div>
-          <div style="text-align:right;"><div style="color:${isDep?'#34d399':'#fb7185'};font-size:10px;font-weight:600;">${isDep?'+':'-'}₹${amt}</div><div style="color:${sc};font-size:9px;">${t.status}</div></div>
+          <div style="text-align:right;"><div style="color:${isDep?'#34d399':'#60a5fa'};font-size:10px;font-weight:600;">${isDep?'+':(isBet?'':'-')}₹${amt}</div>${isBet&&Number(t.reward||0)?`<div style="color:#fbbf24;font-size:9px;">Prize ₹${Number(t.reward).toFixed(2)}</div>`:''}<div style="color:${sc};font-size:9px;">${t.status}</div></div>
         </div>`;
       }
     }
@@ -4593,7 +4742,7 @@ select:focus{
     html+=`</div></div>`;
     showPanel(html);
 
-    const filterMap={txnAll:'all',txnDeposit:'deposit',txnWithdraw:'withdraw'};
+    const filterMap={txnAll:'all',txnDeposit:'deposit',txnWithdraw:'withdraw',txnBet:'bet'};
     Object.keys(filterMap).forEach(id=>{
       const btn=document.getElementById(id);
       if(btn) btn.addEventListener('click',function(){
@@ -5338,4 +5487,3 @@ new MutationObserver(()=>{applyMenuSettings(window.__bhauAdminSettings);applyDum
 
 </body>
 </html>
-```
