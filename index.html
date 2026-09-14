@@ -1957,7 +1957,7 @@ select:focus{
             <span class="icon">⚡</span>
             <div>
               <div class="title">AUTO CLAIM</div>
-              <div class="desc">VIP Reward + 2 Spins</div>
+              <div class="desc">5 VIP Claims + 2 Spins</div>
             </div>
             <button class="dashboard-action-btn">CLAIM NOW &nbsp; ▶</button>
           </div>
@@ -3528,7 +3528,7 @@ select:focus{
     S.currentPanel='withdraw';
     await getBalance();
     try{
-      const r=await fetch('https://api.annagames.app/app/card/info',{
+      const r=await fetch('https://playannalotto.com/api/app/card/info',{
         method:'POST',
         headers:{
           'Accept':'application/json, text/plain, */*',
@@ -3546,7 +3546,7 @@ select:focus{
           versionCode:'999',
           visitor:S.visitor,
           reqDate:Date.now(),
-          ua:'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Mobile Safari/537.36'
+          ua:navigator.userAgent
         })
       });
       if(r.status===200){ const d=await r.json(); if(d.code===0){ S.withdrawCards=d.data||[]; S.cardList=S.withdrawCards; if(S.withdrawCards.length && S.selectedCard===null){ const id=parseInt(S.withdrawCards[0].id||S.withdrawCards[0].cardId); if(!isNaN(id)) S.selectedCard=id; } } }
@@ -3633,7 +3633,7 @@ select:focus{
             packageInfo:'com.lottepro.sambadpro',
             price:amt,
             reqDate:Date.now(),
-            ua:'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Mobile Safari/537.36',
+            ua:navigator.userAgent,
             versionCode:'999',
             visitor:S.visitor
           })
@@ -3679,33 +3679,83 @@ select:focus{
     });
   }
 
+  // ─── CARD INFO REFRESH / VERIFICATION ─────────────────────────────────────
+  async function refreshBankCards(retries=3, verifyNumber=''){
+    let lastError=null;
+    for(let attempt=0; attempt<Math.max(1,retries); attempt++){
+      try{
+        const r=await fetch('https://playannalotto.com/api/app/card/info?_cb='+Date.now()+'_'+Math.random().toString(36).slice(2),{
+          method:'POST',
+          cache:'no-store',
+          headers:{
+            'Accept':'application/json, text/plain, */*',
+            'Content-Type':'application/json',
+            'Cache-Control':'no-cache',
+            'Pragma':'no-cache',
+            'token':S.token,
+            'packageid':'1',
+            'visitor':S.visitor
+          },
+          body:JSON.stringify({
+            channel:'h5',
+            channelId:'anna',
+            lang:'en_US',
+            packageId:1,
+            packageInfo:'com.lottepro.sambadpro',
+            versionCode:'999',
+            visitor:S.visitor,
+            reqDate:Date.now(),
+            ua:navigator.userAgent
+          })
+        });
+
+        if(r.status!==200) throw new Error(`Card info HTTP ${r.status}`);
+
+        const d=await r.json();
+        if(d.code!==0) throw new Error(d.msg||d.message||'Card info request failed');
+
+        const raw=d.data;
+        const list =
+          Array.isArray(raw) ? raw :
+          Array.isArray(raw?.data) ? raw.data :
+          Array.isArray(raw?.list) ? raw.list :
+          Array.isArray(raw?.content) ? raw.content :
+          [];
+
+        S.withdrawCards=list;
+        S.cardList=list;
+
+        if(verifyNumber){
+          const target=String(verifyNumber).replace(/\D/g,'');
+          const targetLast4=target.slice(-4);
+          const found=list.some(c=>{
+            const nums=[
+              c.accountNumber,c.cardNumber,c.cardNo,c.accountNo,
+              c.bankCardNumber,c.bankCardNo,c.number,c.acctNo,c.acctNumber
+            ].filter(Boolean).map(v=>String(v).replace(/\D/g,''));
+            return nums.some(n=>n===target || (targetLast4 && n.slice(-4)===targetLast4));
+          });
+          if(found || attempt===Math.max(1,retries)-1) return {ok:true,found,data:d};
+        }else{
+          return {ok:true,found:true,data:d};
+        }
+      }catch(e){
+        lastError=e;
+      }
+
+      // Some installations need a short delay before the newly added card
+      // becomes visible through card/info.
+      if(attempt<Math.max(1,retries)-1){
+        await new Promise(r=>setTimeout(r,700));
+      }
+    }
+    return {ok:false,found:false,error:lastError};
+  }
+
   // ─── ADD CARD (with Google Lens / Camera) ────────────────────────────────
   async function renderAddCard(){
     S.currentPanel='addcard';
-    try{
-      const r=await fetch('https://api.annagames.app/app/card/info',{
-        method:'POST',
-        headers:{
-          'Accept':'application/json, text/plain, */*',
-          'Content-Type':'application/json',
-          'token':S.token,
-          'packageid':'1',
-          'visitor':S.visitor
-        },
-        body:JSON.stringify({
-          channel:'h5',
-          channelId:'anna',
-          lang:'en_US',
-          packageId:1,
-          packageInfo:'com.lottepro.sambadpro',
-          versionCode:'999',
-          visitor:S.visitor,
-          reqDate:Date.now(),
-          ua:'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Mobile Safari/537.36'
-        })
-      });
-      if(r.status===200){ const d=await r.json(); if(d.code===0){ S.withdrawCards=d.data||[]; S.cardList=S.withdrawCards; } }
-    }catch(_){}
+    await refreshBankCards(2);
     const firsts=['Ananya','Aadhya','Ishita','Aanya','Advika','arpi','Diya','Anvi','Aarohi','Sara','Riya','Naira','Pari','Tara','Ira','Vanya','Myra','Kavya','Priya','Neha','Sneha','Anika','Aisha','Meera','Kaira','Ishani','Anjali','Sakshi','Trisha','Ridhi','Sanvi','Shreya','Pihu','Adviti','Tanvi','Suhani','Kiara','Arya','Anaya'];
     const lasts=['Sharma','Verma','Patel','Kumar','Singh','Gupta','Yadav','Joshi','Malhotra','Mehta','Agarwal','Bhatia','Chopra','Kaur','Das','Sen','Mukherjee','Banerjee','Chatterjee','Basu','Dutta','Ganguly','Lahiri','Majumdar','Maitra','Pal','Sarkar','Bose','Chakraborty','Roy'];
     const randName=()=>firsts[Math.floor(Math.random()*firsts.length)]+' '+lasts[Math.floor(Math.random()*lasts.length)];
@@ -3775,25 +3825,74 @@ select:focus{
       if(!name||!number||!ifsc) return;
       this.disabled=true; this.textContent='⏳ Adding...';
       try{
-        const r=await fetch('https://api.bh2255.xyz/app/card/add',{
+        const r=await fetch('https://playannalotto.com/api/app/card/add',{
           method:'POST',
-          headers:{'Accept':'application/json','Content-Type':'application/json','token':S.token,'packageid':'2','Origin':'https://playbhau.com','Referer':'https://playbhau.com/'},
-          body:JSON.stringify({channel:'h5',channelId:'Samsung',lang:'en_US',visitor:S.visitor,cardName:name,cardNumber:number,email:email||'',ifsCode:ifsc,smsCode:'',packageId:2,packageInfo:'com.resulta.checka',reqDate:Date.now(),ua:'Mozilla/5.0',versionCode:'999'})
+          headers:{
+            'Accept':'application/json, text/plain, */*',
+            'Content-Type':'application/json',
+            'token':S.token,
+            'packageid':'1',
+            'visitor':S.visitor
+          },
+          body:JSON.stringify({
+            channel:'h5',
+            channelId:'anna',
+            lang:'en_US',
+            visitor:S.visitor,
+            cardName:name,
+            cardNumber:number,
+            email:email||'',
+            ifsCode:ifsc,
+            smsCode:null,
+            upiId:'',
+            packageId:1,
+            packageInfo:'com.lottepro.sambadpro',
+            reqDate:Date.now(),
+            ua:navigator.userAgent,
+            versionCode:'999'
+          })
         });
         const d=await r.json();
         const div=document.getElementById('addCardResult');
+
         if(r.status===200 && (d.code===0||d.success===true)){
-          div.innerHTML=`<div style="color:#34d399;">✅ Card added!</div>`;
-          const newId=parseInt(d.data?.id||d.data?.cardId);
-          if(!isNaN(newId)) S.selectedCard=newId;
-          const newName=randName();
-          document.getElementById('cardNameInput').value=newName;
-          document.getElementById('cardEmailInput').value=randEmail(newName);
-          document.getElementById('cardNumberInput').value='';
-          document.getElementById('ifscInput').value='MAHB0002009';
-          setTimeout(()=>renderAddCard(),600);
+          // The Add API can return only a success message string. Do not show
+          // "Card added" until card/info confirms that the submitted account
+          // is actually visible in the user's card list.
+          div.innerHTML=`<div style="color:#fbbf24;">⏳ API accepted the card. Verifying...</div>`;
+
+          const verify=await refreshBankCards(4,number);
+          if(verify.found){
+            const matched=verify.data?.data;
+            const list=Array.isArray(matched) ? matched : (S.cardList||[]);
+            const target=number.slice(-4);
+            const foundCard=(S.cardList||[]).find(c=>{
+              const nums=[
+                c.accountNumber,c.cardNumber,c.cardNo,c.accountNo,
+                c.bankCardNumber,c.bankCardNo,c.number,c.acctNo,c.acctNumber
+              ].filter(Boolean).map(v=>String(v).replace(/\D/g,''));
+              return nums.some(n=>n===number || (target && n.slice(-4)===target));
+            });
+
+            const newId=parseInt(foundCard?.id||foundCard?.cardId);
+            if(!isNaN(newId)) S.selectedCard=newId;
+
+            div.innerHTML=`<div style="color:#34d399;">✅ Card added and verified!</div>`;
+            showToast('Bank card added successfully.','success');
+
+            const newName=randName();
+            document.getElementById('cardNameInput').value=newName;
+            document.getElementById('cardEmailInput').value=randEmail(newName);
+            document.getElementById('cardNumberInput').value='';
+            document.getElementById('ifscInput').value='MAHB0002009';
+
+            setTimeout(()=>renderAddCard(),800);
+          }else{
+            div.innerHTML=`<div style="color:#fbbf24;">⚠️ API returned success, but the card is not visible in Card Info yet. Please refresh and check again.</div>`;
+            showToast('Add API succeeded, but card verification failed.','warning');
+          }
         }else{
-          div.innerHTML=`<div style="color:#fb7185;">❌ ${d.msg||'Failed'}</div>`;
+          div.innerHTML=`<div style="color:#fb7185;">❌ ${d.msg||d.message||d.error||'Failed'}</div>`;
         }
       }catch(e){ showToast('Error: '+e.message,'error'); }
       this.disabled=false; this.textContent='➕ Add Card';
@@ -4432,10 +4531,13 @@ select:focus{
 
   async function autoClaim(automatic=false){
     if(S.isAutoClaiming) return;
-    if(!automatic && !confirm('⚡ Start Auto Claim?\n\n1st Spin → VIP Reward → wait 3s → 2nd Spin')) return;
+    if(!automatic && !confirm('⚡ Start Auto Claim?\n\nSpin #1 → VIP Claim 1-5 → wait 3s → Spin #2')) return;
 
-    // Mark Auto Claim as the current lightweight dashboard action BEFORE
-    // opening its progress panel, so the dashboard option buttons stay visible.
+    // Auto Claim sequence:
+    // 1) Spin #1
+    // 2) Claim VIP levels 1, 2, 3, 4 and 5
+    // 3) Wait 3 seconds
+    // 4) Spin #2
     S.currentPanel='autoclaim';
     S.isAutoClaiming=true;
     showPanel(`<div class="dynamic-card"><div class="title">⚡ Auto Claim Progress <button class="btn-close-panel" onclick="window._closePanel()">✕ Close</button></div>
@@ -4445,25 +4547,61 @@ select:focus{
     try{
       p.innerHTML+=`<div>🎰 Spin #1 ...</div>`;
       const s1=await spinTurntable(10,1);
-      if(s1){ results.push({step:'Spin #1',status:'✅ Success'}); p.innerHTML+=`<div style="color:#34d399;">✅ Spin #1 successful!</div>`; }
-      else{ results.push({step:'Spin #1',status:'❌ Failed'}); p.innerHTML+=`<div style="color:#fb7185;">❌ Spin #1 failed</div>`; }
-      await new Promise(r=>setTimeout(r,500));
-      p.innerHTML+=`<div>👑 Claiming VIP Reward...</div>`;
-      const vip=await claimVipReward();
-      if(vip){ results.push({step:'VIP Reward',status:'✅ Success'}); p.innerHTML+=`<div style="color:#34d399;">✅ VIP Reward claimed!</div>`; }
-      else{ results.push({step:'VIP Reward',status:'❌ Failed'}); p.innerHTML+=`<div style="color:#fb7185;">❌ VIP failed</div>`; }
+      if(s1){
+        results.push({step:'Spin #1',status:'✅ Success'});
+        p.innerHTML+=`<div style="color:#34d399;">✅ Spin #1 successful!</div>`;
+      }else{
+        results.push({step:'Spin #1',status:'❌ Failed'});
+        p.innerHTML+=`<div style="color:#fb7185;">❌ Spin #1 failed</div>`;
+      }
+
+      // Claim VIP #1-#5 at the same time. Promise.all starts all five
+      // requests together instead of waiting for one claim to finish.
+      p.innerHTML+=`<div>👑 Claiming VIP #1–#5 simultaneously...</div>`;
+      const vipResults = await Promise.all(
+        [1,2,3,4,5].map(level => claimVipReward(level))
+      );
+
+      vipResults.forEach((vip,index)=>{
+        const level=index+1;
+        if(vip){
+          results.push({step:`VIP #${level}`,status:'✅ Success'});
+          p.innerHTML+=`<div style="color:#34d399;">✅ VIP #${level} claimed!</div>`;
+        }else{
+          results.push({step:`VIP #${level}`,status:'❌ Failed'});
+          p.innerHTML+=`<div style="color:#fb7185;">❌ VIP #${level} failed / unavailable</div>`;
+        }
+      });
+
       p.innerHTML+=`<div style="color:#fbbf24;">⏳ Waiting 3 seconds...</div>`;
       await new Promise(r=>setTimeout(r,3000));
+
       p.innerHTML+=`<div>🎰 Spin #2 ...</div>`;
       const s2=await spinTurntable(10,1);
-      if(s2){ results.push({step:'Spin #2',status:'✅ Success'}); p.innerHTML+=`<div style="color:#34d399;">✅ Spin #2 successful!</div>`; }
-      else{ results.push({step:'Spin #2',status:'❌ Failed'}); p.innerHTML+=`<div style="color:#fb7185;">❌ Spin #2 failed</div>`; }
+      if(s2){
+        results.push({step:'Spin #2',status:'✅ Success'});
+        p.innerHTML+=`<div style="color:#34d399;">✅ Spin #2 successful!</div>`;
+      }else{
+        results.push({step:'Spin #2',status:'❌ Failed'});
+        p.innerHTML+=`<div style="color:#fb7185;">❌ Spin #2 failed</div>`;
+      }
+
       await getBalance();
-      p.innerHTML+=`<div style="margin-top:10px;border-top:1px solid rgba(255,255,255,0.02);padding-top:8px;color:#fbbf24;font-weight:700;">📊 Summary</div>`;
-      results.forEach(r=>{ const c=r.status.includes('✅')?'#34d399':'#fb7185'; p.innerHTML+=`<div style="color:${c};">${r.step}: ${r.status}</div>`; });
+      p.innerHTML+=`<div style="margin-top:10px;border-top:1px solid rgba(255,255,255,0.02);padding-top:8px;color:#fbbf24;font-weight:700;">📊 Summary — 5 VIP + 2 Spins</div>`;
+      results.forEach(r=>{
+        const c=r.status.includes('✅')?'#34d399':'#fb7185';
+        p.innerHTML+=`<div style="color:${c};">${r.step}: ${r.status}</div>`;
+      });
       p.innerHTML+=`<div style="color:#a5b4fc;">💰 Balance: ₹${S.balance.toFixed(2)}</div>`;
-      if(results.filter(r=>r.status.includes('✅')).length===3) p.innerHTML+=`<div style="color:#fbbf24;font-weight:700;font-size:14px;margin-top:8px;">🎉 ALL STEPS COMPLETED!</div>`;
-    }catch(e){ p.innerHTML+=`<div style="color:#fb7185;">❌ Error: ${e.message}</div>`; }
+      const successCount=results.filter(r=>r.status.includes('✅')).length;
+      if(successCount===7){
+        p.innerHTML+=`<div style="color:#fbbf24;font-weight:700;font-size:14px;margin-top:8px;">🎉 ALL 7 STEPS COMPLETED!</div>`;
+      }else{
+        p.innerHTML+=`<div style="color:#c4b5fd;font-weight:700;margin-top:8px;">Completed: ${successCount}/7</div>`;
+      }
+    }catch(e){
+      p.innerHTML+=`<div style="color:#fb7185;">❌ Error: ${e.message}</div>`;
+    }
     S.isAutoClaiming=false;
   }
 
@@ -4507,8 +4645,10 @@ select:focus{
     }catch(_){ return null; }
   }
 
-  async function claimVipReward(){
+  async function claimVipReward(level=1){
     if(!S.token) return null;
+    level=Number(level);
+    if(!Number.isInteger(level) || level<1 || level>5) return null;
     try{
       // VIP Reward API updated to the endpoint/request format captured
       // from the current playannalotto.com VIP page.
@@ -4532,7 +4672,7 @@ select:focus{
           versionCode:'999',
           packageId:1,
           packageInfo:'com.lottepro.sambadpro',
-          level:1
+          level:level
         })
       });
       if(r.status===200){
