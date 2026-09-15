@@ -793,6 +793,9 @@
 #dashboard.menu-open .user-badge{display:none!important}
 
 #dashboard .save-number-panel{display:none!important}
+/* SERVER SELECTOR IS LOGIN-ONLY — NEVER SHOW IT IN DASHBOARD */
+body:has(#dashboard[style*="display: block"]) #serverSelect{visibility:hidden;pointer-events:none}
+body:has(#dashboard[style*="display: block"]) #loginSection{display:none!important}
 #dashboard .dashboard-content-wrapper{display:block}
 #dashboard #dynamicContent{margin-bottom:14px}
 #dashboard .menu-grid{
@@ -2664,19 +2667,30 @@ select:focus{
   function saveSession(){
     if(S.isLoggedIn && S.token){
       try{ localStorage.setItem('bhau_session',JSON.stringify({
-        token:S.token, phone:S.phone, visitor:S.visitor, isLoggedIn:true
+        token:S.token, phone:S.phone, visitor:S.visitor, isLoggedIn:true, server:selectedServer
       }));}catch(_){}
     }
   }
   function loadSession(){
     try{
       const d=JSON.parse(localStorage.getItem('bhau_session'));
-      if(d?.isLoggedIn && d.token){
+      const savedServer=d?.server || localStorage.getItem('bhau_selected_server') || '';
+
+      // Never restore a logged-in dashboard without a valid server.
+      // Server selection belongs to the login panel only.
+      if(d?.isLoggedIn && d.token && savedServer && AUTO_LOGIN_SERVERS[savedServer]){
+        selectedServer=savedServer;
+        try{ localStorage.setItem('bhau_selected_server',selectedServer); }catch(_){}
         S.token=d.token; S.phone=d.phone||'8597630383';
         S.visitor=d.visitor||'0bcbcd2bea0bde4737e38d0e23bbf654dfc9';
         S.isLoggedIn=true;
         return true;
       }
+
+      // Invalid/old session: force the user back to login and server selection.
+      try{ localStorage.removeItem('bhau_session'); }catch(_){}
+      S.isLoggedIn=false;
+      S.token='';
     }catch(_){}
     return false;
   }
@@ -5158,8 +5172,10 @@ select:focus{
       await updateNumberDisplay();
 
       // JWT login uses the same post-authentication transition as normal login.
+      // Server selection UI is login-only and must never appear on the dashboard.
       loginSection.style.display='none';
       dashboard.style.display='block';
+      document.getElementById('serverSelect')?.blur();
       userPhoneDisplay.textContent=S.phone || 'JWT Account';
       closePanel();
       try{ history.pushState(null,'',window.location.href); }catch(_){ }
@@ -5198,7 +5214,10 @@ select:focus{
     const ok=await login(phone,pass);
     if(ok){
       // Switch to the dashboard immediately after authentication succeeds.
-      loginSection.style.display='none'; dashboard.style.display='block';
+      // Server selection UI exists ONLY inside the login panel.
+      loginSection.style.display='none';
+      dashboard.style.display='block';
+      document.getElementById('serverSelect')?.blur();
       userPhoneDisplay.textContent=phone;
       closePanel();
       history.pushState(null,'',window.location.href);
@@ -5434,13 +5453,17 @@ select:focus{
 
   // ─── RESTORE SESSION ────────────────────────────────────────────────
   if(loadSession()){
+    // Restore the dashboard only after a valid server is already associated
+    // with the saved session. Do NOT show the server selector on the dashboard.
     if(serverSelect) serverSelect.value=selectedServer;
     if(phoneInput && selectedServer && AUTO_LOGIN_SERVERS[selectedServer]){
       phoneInput.disabled=false;
       phoneInput.placeholder='Enter 10-digit mobile';
     }
     updateServerBadges();
-    loginSection.style.display='none'; dashboard.style.display='block';
+    loginSection.style.display='none';
+    dashboard.style.display='block';
+    document.getElementById('serverSelect')?.blur();
     userPhoneDisplay.textContent=S.phone||'8597630383';
     updateNumberDisplay();
     startLiveBalanceSync();
